@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}게임 생성 완료{% endblock %}
+
+{% block content %}
+<style>
+  .done-card {
+    background: #0d1120;
+    border: 1px solid #2a4080;
+    border-radius: 14px;
+    padding: 32px 28px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(74,122,255,.12);
+  }
+  .done-icon { font-size: 2.4rem; margin-bottom: 16px; }
+  .done-title { font-size: 1.4rem; font-weight: 700; color: #c8d6ff; margin-bottom: 6px; }
+  .done-genre { font-size: .78rem; color: #3a5090; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 24px; }
+  .done-npc-list { text-align: left; margin-top: 20px; }
+  .done-npc-row {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #080c18;
+    border: 1px solid #1e2d50;
+    margin-bottom: 8px;
+    color: #7090c0;
+    font-size: .85rem;
+  }
+  .btn-home {
+    display: inline-block;
+    margin-top: 28px;
+    padding: 10px 28px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #1a3080 0%, #2a50c0 100%);
+    color: #a8c0ff;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: .88rem;
+  }
+  .btn-home:hover { opacity: .85; color: #c8d8ff; }
+  .btn-another {
+    display: inline-block;
+    margin-top: 28px;
+    margin-left: 10px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid #1e2d50;
+    color: #5070a0;
+    text-decoration: none;
+    font-size: .88rem;
+  }
+  .btn-another:hover { border-color: #4a7aff; color: #8090c0; }
+</style>
+
+<div class="done-card">
+  <div class="done-icon">✦</div>
+  <div class="done-title">{{ game.title }}</div>
+  <div class="done-genre">{{ game.genre }} · 게임 생성 완료</div>
+
+  {% if game.description %}
+  <p style="color:#6080a0; font-size:.88rem;">{{ game.description }}</p>
+  {% endif %}
+
+  {% if game.npcs.exists %}
+  <div class="done-npc-list">
+    <div style="font-size:.7rem; color:#3a5090; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;">등록된 NPC</div>
+    {% for npc in game.npcs.all %}
+    <div class="done-npc-row">
+      <b style="color:#90b0d0;">{{ npc.name }}</b>
+      {% if npc.role %}<span style="opacity:.6;"> · {{ npc.role }}</span>{% endif %}
+      {% if npc.personality %}<span style="opacity:.5; font-size:.78rem;"> — {{ npc.personality }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div>
+    <a href="{% url 'main:home' %}" class="btn-home">홈으로</a>
+    <a href="{% url 'gamebuilder:create' %}" class="btn-another">다른 게임 만들기</a>
+  </div>
+</div>
+{% endblock %}

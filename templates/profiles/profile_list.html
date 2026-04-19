@@ -1,58 +1,184 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <title>프로필 선택</title>
-</head>
-<body>
-  <h1>프로필 선택 (최대 3개)</h1>
+{% extends "base.html" %}
+{% block title %}프로필 선택{% endblock %}
 
-  <p><a href="{% url 'profiles:create' %}">새 프로필 만들기</a></p>
-  <hr>
+{% block content %}
+<style>
+  .nova-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: #c8d6ff;
+    text-shadow: 0 0 18px rgba(100, 160, 255, .55);
+  }
+  .nova-sub {
+    color: #5a6a8a;
+    font-size: .85rem;
+    letter-spacing: .06em;
+  }
 
-  <h2>슬롯 1</h2>
-  {% if p1 %}
-    <div style="padding:12px;border:1px solid #ccc;margin-bottom:12px;">
-      <div><b>이름:</b> {{ p1.name }}</div>
-      <div><b>성별/나이:</b> {{ p1.gender }} / {{ p1.age }}</div>
-      <div><b>외모:</b> {{ p1.face_text }}</div>
-      <div><b>체형:</b> {{ p1.body_text }}</div>
-      <div><b>분위기:</b> {{ p1.vibe_text }}</div>
-      <p><a href="{% url 'profiles:select' 1 %}">이 프로필로 시작</a></p>
+  /* ── 카드 공통 ── */
+  .profile-card {
+    background: #0d1120;
+    border: 1px solid #1e2d50;
+    border-radius: 14px;
+    min-height: 260px;
+    transition: border-color .2s, box-shadow .2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 24px 20px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .profile-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(60,100,255,.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* ── 채워진 카드 ── */
+  .profile-card.filled {
+    border-color: #2a4080;
+  }
+  .profile-card.filled:hover {
+    border-color: #4a7aff;
+    box-shadow: 0 0 22px rgba(74, 122, 255, .25);
+  }
+
+  /* ── 빈 카드 ── */
+  .profile-card.empty {
+    border: 2px dashed #1e2d50;
+    background: #080c18;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .profile-card.empty:hover {
+    border-color: #3a5aaa;
+    box-shadow: 0 0 18px rgba(58, 90, 170, .2);
+  }
+  .empty-icon {
+    font-size: 2.4rem;
+    color: #2a4080;
+    line-height: 1;
+    margin-bottom: 10px;
+    transition: color .2s;
+  }
+  .profile-card.empty:hover .empty-icon { color: #4a7aff; }
+  .empty-label {
+    font-size: .8rem;
+    color: #3a5090;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  /* ── 슬롯 번호 배지 ── */
+  .slot-badge {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-size: .7rem;
+    color: #2a4080;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  /* ── 프로필 이름 ── */
+  .profile-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #d0dcff;
+    margin-bottom: 4px;
+    letter-spacing: .04em;
+  }
+  .profile-meta {
+    font-size: .8rem;
+    color: #4a6090;
+    margin-bottom: 14px;
+  }
+
+  /* ── 태그 ── */
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .tag {
+    font-size: .7rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #0f1a35;
+    border: 1px solid #1e3060;
+    color: #6080b0;
+    letter-spacing: .04em;
+  }
+
+  /* ── 시작하기 버튼 ── */
+  .btn-nova {
+    display: block;
+    width: 100%;
+    padding: 9px 0;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #1a3080 0%, #2a50c0 100%);
+    border: none;
+    color: #a8c0ff;
+    font-size: .85rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-align: center;
+    text-decoration: none;
+    transition: background .2s, box-shadow .2s;
+  }
+  .btn-nova:hover {
+    background: linear-gradient(90deg, #2040a0 0%, #3a60e0 100%);
+    box-shadow: 0 0 14px rgba(74, 122, 255, .35);
+    color: #c8d8ff;
+  }
+</style>
+
+<div class="mb-5">
+  <div class="nova-title mb-1">프로필 선택</div>
+  <div class="nova-sub">NOVA · PROFILE MANAGER</div>
+</div>
+
+<div class="row g-4">
+
+  {% for slot_num, profile in slots %}
+  <div class="col-12 col-md-4">
+    {% if profile %}
+    <!-- ── 채워진 카드 ── -->
+    <div class="profile-card filled">
+      <span class="slot-badge">SLOT {{ slot_num }}</span>
+
+      <div>
+        <div class="profile-name">{{ profile.name }}</div>
+        <div class="profile-meta">{{ profile.gender }} · {{ profile.age }}세</div>
+
+        <div class="tag-list">
+          {% if profile.face_text %}
+            <span class="tag">{{ profile.face_text }}</span>
+          {% endif %}
+          {% if profile.body_text %}
+            <span class="tag">{{ profile.body_text }}</span>
+          {% endif %}
+          {% if profile.vibe_text %}
+            <span class="tag">{{ profile.vibe_text }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <a href="{% url 'profiles:select' slot_num %}?game_id={{ game_id }}" class="btn-nova">시작하기</a>
     </div>
-  {% else %}
-    <div style="padding:12px;border:1px dashed #aaa;margin-bottom:12px;">비어 있음</div>
-  {% endif %}
 
-  <h2>슬롯 2</h2>
-  {% if p2 %}
-    <div style="padding:12px;border:1px solid #ccc;margin-bottom:12px;">
-      <div><b>이름:</b> {{ p2.name }}</div>
-      <div><b>성별/나이:</b> {{ p2.gender }} / {{ p2.age }}</div>
-      <div><b>외모:</b> {{ p2.face_text }}</div>
-      <div><b>체형:</b> {{ p2.body_text }}</div>
-      <div><b>분위기:</b> {{ p2.vibe_text }}</div>
-      <p><a href="{% url 'profiles:select' 2 %}">이 프로필로 시작</a></p>
-    </div>
-  {% else %}
-    <div style="padding:12px;border:1px dashed #aaa;margin-bottom:12px;">비어 있음</div>
-  {% endif %}
+    {% else %}
+    <!-- ── 빈 카드 ── -->
+    <a href="{% url 'profiles:create' %}?slot={{ slot_num }}&game_id={{ game_id }}" class="profile-card empty">
+      <div class="empty-icon">＋</div>
+      <div class="empty-label">새 프로필</div>
+    </a>
+    {% endif %}
+  </div>
+  {% endfor %}
 
-  <h2>슬롯 3</h2>
-  {% if p3 %}
-    <div style="padding:12px;border:1px solid #ccc;margin-bottom:12px;">
-      <div><b>이름:</b> {{ p3.name }}</div>
-      <div><b>성별/나이:</b> {{ p3.gender }} / {{ p3.age }}</div>
-      <div><b>외모:</b> {{ p3.face_text }}</div>
-      <div><b>체형:</b> {{ p3.body_text }}</div>
-      <div><b>분위기:</b> {{ p3.vibe_text }}</div>
-      <p><a href="{% url 'profiles:select' 3 %}">이 프로필로 시작</a></p>
-    </div>
-  {% else %}
-    <div style="padding:12px;border:1px dashed #aaa;margin-bottom:12px;">비어 있음</div>
-  {% endif %}
-
-  <hr>
-  <p>현재 선택된 프로필 ID(세션): {{ request.session.active_profile_id }}</p>
-</body>
-</html>
+</div>
+{% endblock %}

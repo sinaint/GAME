@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+{% block title %}게임 만들기{% endblock %}
+
+{% block content %}
+<style>
+  /* ── 공통 ── */
+  .nb-title  { font-size:1.5rem; font-weight:700; color:#c8d6ff; letter-spacing:.06em; }
+  .nb-sub    { font-size:.8rem; color:#3a5090; letter-spacing:.08em; text-transform:uppercase; margin-bottom:2rem; }
+
+  /* ── 스텝 인디케이터 ── */
+  .step-track {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2.5rem;
+  }
+  .step-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid #1e2d50;
+    background: #080c18;
+    color: #3a5090;
+    font-size: .75rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: border-color .2s, background .2s, color .2s;
+    position: relative;
+    z-index: 1;
+  }
+  .step-dot.active  { border-color: #4a7aff; color: #4a7aff; background: #0a1228; }
+  .step-dot.done    { border-color: #2a50a0; background: #1a2a60; color: #8ab0ff; }
+  .step-label {
+    font-size: .68rem;
+    color: #3a5090;
+    position: absolute;
+    top: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    letter-spacing: .04em;
+  }
+  .step-dot.active .step-label { color: #7090d0; }
+  .step-line {
+    flex: 1;
+    height: 1px;
+    background: #1e2d50;
+    margin: 0 4px;
+    position: relative;
+    top: 0;
+  }
+
+  /* ── 패널 ── */
+  .step-panel { display: none; }
+  .step-panel.active { display: block; }
+
+  /* ── 입력 ── */
+  .nb-label {
+    font-size: .78rem;
+    color: #5070a0;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .nb-input {
+    width: 100%;
+    background: #080c18;
+    border: 1px solid #1e2d50;
+    border-radius: 8px;
+    color: #c8d6ff;
+    padding: 10px 14px;
+    font-size: .9rem;
+    outline: none;
+    transition: border-color .2s;
+    box-sizing: border-box;
+  }
+  .nb-input:focus { border-color: #4a7aff; }
+  .nb-input::placeholder { color: #2a3a60; }
+  textarea.nb-input { resize: vertical; min-height: 140px; line-height: 1.7; }
+
+  /* ── 장르 칩 ── */
+  .genre-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .genre-chip {
+    padding: 7px 18px;
+    border-radius: 20px;
+    border: 1px solid #1e2d50;
+    background: #080c18;
+    color: #4a6090;
+    font-size: .82rem;
+    cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+    user-select: none;
+  }
+  .genre-chip.selected {
+    border-color: #4a7aff;
+    background: #0f1a35;
+    color: #90b0ff;
+  }
+
+  /* ── NPC 카드 ── */
+  .npc-card {
+    background: #0a0f1e;
+    border: 1px solid #1e2d50;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .npc-remove {
+    position: absolute;
+    top: 12px; right: 14px;
+    background: none;
+    border: none;
+    color: #3a5080;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+  .npc-remove:hover { color: #ff6060; }
+  .npc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .npc-grid .full { grid-column: 1 / -1; }
+
+  /* ── 버튼 ── */
+  .btn-add-npc {
+    width: 100%;
+    padding: 11px;
+    border-radius: 8px;
+    border: 1px dashed #1e3060;
+    background: transparent;
+    color: #3a5090;
+    font-size: .82rem;
+    cursor: pointer;
+    transition: border-color .2s, color .2s;
+    margin-top: 4px;
+  }
+  .btn-add-npc:hover { border-color: #4a7aff; color: #7090d0; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 2rem; }
+  .btn-next {
+    flex: 1;
+    padding: 11px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #1a3080 0%, #2a50c0 100%);
+    border: none;
+    color: #a8c0ff;
+    font-weight: 600;
+    font-size: .88rem;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .btn-next:hover { opacity: .85; }
+  .btn-back {
+    padding: 11px 20px;
+    border-radius: 8px;
+    border: 1px solid #1e2d50;
+    background: transparent;
+    color: #5070a0;
+    font-size: .88rem;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .btn-back:hover { border-color: #4a7aff; color: #8090c0; }
+
+  /* ── 미리보기 ── */
+  .preview-block {
+    background: #080c18;
+    border: 1px solid #1e2d50;
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .preview-label { font-size: .7rem; color: #3a5090; letter-spacing:.08em; text-transform:uppercase; margin-bottom:4px; }
+  .preview-value { color: #a8c0ff; font-size: .9rem; line-height: 1.6; }
+  .preview-npc-chip {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 20px;
+    background: #0f1a35;
+    border: 1px solid #2a4080;
+    color: #7090c0;
+    font-size: .75rem;
+    margin: 3px 3px 0 0;
+  }
+
+  .error-box {
+    background: rgba(255,60,60,.08);
+    border: 1px solid rgba(255,60,60,.25);
+    color: #ff9090;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: .85rem;
+    margin-bottom: 1.2rem;
+  }
+</style>
+
+<div class="nb-title">게임 만들기</div>
+<div class="nb-sub">NOVA · GAME BUILDER</div>
+
+{% if error %}
+<div class="error-box">{{ error }}</div>
+{% endif %}
+
+<!-- 스텝 인디케이터 -->
+<div class="step-track" style="padding-bottom:24px;">
+  <div class="step-dot active" id="dot-1" style="position:relative;">1<span class="step-label">기본정보</span></div>
+  <div class="step-line"></div>
+  <div class="step-dot" id="dot-2" style="position:relative;">2<span class="step-label">세계관</span></div>
+  <div class="step-line"></div>
+  <div class="step-dot" id="dot-3" style="position:relative;">3<span class="step-label">NPC</span></div>
+  <div class="step-line"></div>
+  <div class="step-dot" id="dot-4" style="position:relative;">4<span class="step-label">완성</span></div>
+</div>
+
+<form method="post" id="mainForm">
+  {% csrf_token %}
+
+  <!-- ─────────────── STEP 1: 기본정보 ─────────────── -->
+  <div class="step-panel active" id="panel-1">
+    <div class="mb-4">
+      <div class="nb-label">게임 제목 *</div>
+      <input class="nb-input" name="title" id="f-title" placeholder="예: 무림: 돌아온 당신" value="{{ prev.title|default:'' }}">
+    </div>
+
+    <div class="mb-4">
+      <div class="nb-label">장르 *</div>
+      <input type="hidden" name="genre" id="f-genre" value="{{ prev.genre|default:'' }}">
+      <div class="genre-chips">
+        {% for g in genres %}
+        <div class="genre-chip {% if prev.genre == g %}selected{% endif %}" data-genre="{{ g }}">{{ g }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <div class="nb-label">한줄 소개</div>
+      <input class="nb-input" name="description" id="f-desc" placeholder="예: 선택이 쌓여 너만의 이야기가 된다." value="{{ prev.description|default:'' }}">
+    </div>
+
+    <div class="btn-row">
+      <button type="button" class="btn-next" id="next-1">다음 →</button>
+    </div>
+  </div>
+
+  <!-- ─────────────── STEP 2: 세계관 ─────────────── -->
+  <div class="step-panel" id="panel-2">
+    <div class="mb-4">
+      <div class="nb-label">세계관 설명</div>
+      <textarea class="nb-input" name="world_setting" id="f-world" placeholder="게임의 배경, 시대, 분위기를 자유롭게 설명하세요.&#10;&#10;예) 마법과 검이 공존하는 중세 왕국. 100년 전 마왕을 봉인한 영웅의 후손들이 다시 깨어나는 시대...">{{ prev.world_setting|default:'' }}</textarea>
+    </div>
+
+    <div class="btn-row">
+      <button type="button" class="btn-back" id="back-2">← 이전</button>
+      <button type="button" class="btn-next" id="next-2">다음 →</button>
+    </div>
+  </div>
+
+  <!-- ─────────────── STEP 3: NPC ─────────────── -->
+  <div class="step-panel" id="panel-3">
+    <div id="npc-list"></div>
+    <button type="button" class="btn-add-npc" id="add-npc-btn">＋ NPC 추가</button>
+
+    <div class="btn-row">
+      <button type="button" class="btn-back" id="back-3">← 이전</button>
+      <button type="button" class="btn-next" id="next-3">다음 →</button>
+    </div>
+  </div>
+
+  <!-- ─────────────── STEP 4: 미리보기 ─────────────── -->
+  <div class="step-panel" id="panel-4">
+    <div class="preview-block">
+      <div class="preview-label">제목</div>
+      <div class="preview-value" id="pv-title">—</div>
+    </div>
+    <div class="preview-block">
+      <div class="preview-label">장르 · 소개</div>
+      <div class="preview-value"><span id="pv-genre" style="color:#5070a0;margin-right:8px;"></span><span id="pv-desc"></span></div>
+    </div>
+    <div class="preview-block">
+      <div class="preview-label">세계관</div>
+      <div class="preview-value" id="pv-world" style="white-space:pre-wrap;"></div>
+    </div>
+    <div class="preview-block">
+      <div class="preview-label">NPC</div>
+      <div id="pv-npcs"></div>
+    </div>
+
+    <div class="btn-row">
+      <button type="button" class="btn-back" id="back-4">← 이전</button>
+      <button type="submit" class="btn-next">게임 생성 완료</button>
+    </div>
+  </div>
+
+</form>
+
+<!-- NPC 카드 템플릿 (숨김) -->
+<template id="npc-template">
+  <div class="npc-card">
+    <button type="button" class="npc-remove" title="삭제">✕</button>
+    <div class="npc-grid">
+      <div>
+        <div class="nb-label">이름</div>
+        <input class="nb-input" name="npc_name" placeholder="예: 이브">
+      </div>
+      <div>
+        <div class="nb-label">성별</div>
+        <input class="nb-input" name="npc_gender" placeholder="예: 여자">
+      </div>
+      <div>
+        <div class="nb-label">나이</div>
+        <input class="nb-input" name="npc_age" type="number" min="1" max="999" placeholder="20">
+      </div>
+      <div>
+        <div class="nb-label">역할</div>
+        <input class="nb-input" name="npc_role" placeholder="예: 동료 / 상인 / 왕">
+      </div>
+      <div class="full">
+        <div class="nb-label">성격 키워드</div>
+        <input class="nb-input" name="npc_personality" placeholder="예: 차갑고 신중하다, 따뜻하고 충동적이다">
+      </div>
+      <div class="full">
+        <div class="nb-label">주인공과의 초기 관계</div>
+        <input class="nb-input" name="npc_relation" placeholder="예: 오랜 친구, 적대적인 라이벌">
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+(function () {
+  // ── 스텝 이동 ──
+  let current = 1;
+
+  function goTo(n) {
+    document.getElementById("panel-" + current).classList.remove("active");
+    for (let i = 1; i <= 4; i++) {
+      const dot = document.getElementById("dot-" + i);
+      dot.classList.remove("active", "done");
+      if (i < n) dot.classList.add("done");
+      else if (i === n) dot.classList.add("active");
+    }
+    current = n;
+    document.getElementById("panel-" + current).classList.add("active");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  // next 버튼
+  document.getElementById("next-1").addEventListener("click", function () {
+    const title = document.getElementById("f-title").value.trim();
+    const genre = document.getElementById("f-genre").value;
+    if (!title) { alert("게임 제목을 입력해주세요."); return; }
+    if (!genre) { alert("장르를 선택해주세요."); return; }
+    goTo(2);
+  });
+  document.getElementById("next-2").addEventListener("click", function () { goTo(3); });
+  document.getElementById("next-3").addEventListener("click", function () {
+    populatePreview();
+    goTo(4);
+  });
+
+  // back 버튼
+  document.getElementById("back-2").addEventListener("click", function () { goTo(1); });
+  document.getElementById("back-3").addEventListener("click", function () { goTo(2); });
+  document.getElementById("back-4").addEventListener("click", function () { goTo(3); });
+
+  // ── 장르 칩 ──
+  const genreInput = document.getElementById("f-genre");
+  document.querySelectorAll(".genre-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      document.querySelectorAll(".genre-chip").forEach(c => c.classList.remove("selected"));
+      chip.classList.add("selected");
+      genreInput.value = chip.dataset.genre;
+    });
+  });
+
+  // ── NPC 추가 ──
+  const npcList = document.getElementById("npc-list");
+  const npcTemplate = document.getElementById("npc-template");
+
+  function addNpc() {
+    const card = npcTemplate.content.cloneNode(true);
+    const wrapper = card.querySelector(".npc-card");
+    wrapper.querySelector(".npc-remove").addEventListener("click", function () {
+      wrapper.remove();
+    });
+    npcList.appendChild(card);
+  }
+
+  document.getElementById("add-npc-btn").addEventListener("click", addNpc);
+
+  // ── 미리보기 ──
+  function populatePreview() {
+    document.getElementById("pv-title").textContent =
+      document.getElementById("f-title").value || "—";
+    document.getElementById("pv-genre").textContent =
+      document.getElementById("f-genre").value || "—";
+    document.getElementById("pv-desc").textContent =
+      document.getElementById("f-desc").value || "";
+    document.getElementById("pv-world").textContent =
+      document.getElementById("f-world").value || "—";
+
+    const npcCards = npcList.querySelectorAll(".npc-card");
+    const pvNpcs = document.getElementById("pv-npcs");
+    pvNpcs.innerHTML = "";
+    if (npcCards.length === 0) {
+      pvNpcs.innerHTML = '<span style="color:#3a5090;font-size:.85rem;">NPC 없음</span>';
+      return;
+    }
+    npcCards.forEach(function (card) {
+      const name = card.querySelector("[name=npc_name]").value.trim();
+      const role = card.querySelector("[name=npc_role]").value.trim();
+      if (!name) return;
+      const chip = document.createElement("div");
+      chip.className = "preview-npc-chip";
+      chip.textContent = name + (role ? " · " + role : "");
+      pvNpcs.appendChild(chip);
+    });
+  }
+})();
+</script>
+{% endblock %}

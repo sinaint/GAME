@@ -2,21 +2,25 @@ from django.db import models
 
 
 class GameSession(models.Model):
-    # 어떤 프로필로 플레이 중인지 연결 (profiles 앱의 Profile 모델 사용)
-    profile = models.OneToOneField(
+    profile = models.ForeignKey(
         "profiles.Profile",
         on_delete=models.CASCADE,
-        related_name="game_session",
+        related_name="game_sessions",
     )
+    game_id = models.IntegerField(default=1)
 
-    # 현재 턴 번호
     turn = models.PositiveIntegerField(default=0)
-
-    # 상태값(스탯/플래그 등). AI 붙이기 전엔 테스트용으로만 사용해도 됨.
     state_json = models.JSONField(default=dict, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["profile", "game_id"], name="unique_profile_game"
+            )
+        ]
 
 
 class GameEvent(models.Model):

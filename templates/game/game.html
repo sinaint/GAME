@@ -2,8 +2,7 @@
 {% block title %}Game{% endblock %}
 {% block content %}
 
-<div class="container py-4">
-  <div class="d-flex flex-column gap-3">
+<div class="d-flex flex-column gap-3 py-4">
 
     {% for e in events %}
 
@@ -22,12 +21,6 @@
           {{ e.content|linebreaksbr }}
         </div>
 
-      {% elif e.kind == "INFO_PANEL" %}
-        <pre class="p-2 rounded"
-             style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.85);">
-{{ e.content }}
-        </pre>
-
       {% elif e.kind == "SUGGESTIONS" %}
         <div class="d-flex flex-wrap gap-2">
           {% for s in e.payload_json.items %}
@@ -41,80 +34,285 @@
 
     {% endfor %}
 
-  </div>
+  <div id="bottom"></div>
 </div>
-<!-- 입력 폼: wrtn 느낌의 | 프롬프트 -->
-<form method="post" action="{% url 'game:turn' profile.id %}" class="mt-4">
+
+<!-- 입력 폼 -->
+<form method="post" action="{% url 'game:turn' profile.id %}" class="mt-4" id="gameForm">
   {% csrf_token %}
 
   <div class="prompt-shell">
     <span class="prompt-bar">|</span>
 
-    <input
+    <textarea
       id="messageInput"
       name="message"
       class="prompt-input"
-      placeholder='예) *복도로 나간다* 또는 "히나, 같이 먹자"'
+      rows="1"
+      placeholder='Alt+2 대사  Alt+3 행동  또는 직접 입력'
       autocomplete="off"
-    >
+    ></textarea>
+
+    <!-- 단축키 안내 버튼 -->
+    <button type="button" id="shortcutBtn" class="shortcut-btn" title="단축키 안내">⌨</button>
 
     <button class="btn btn-success btn-sm" type="submit">전송</button>
   </div>
 
-  <!-- mode는 prefix(*...* / "..." )가 우선이라, 기본값만 숨겨서 보냄 -->
   <input type="hidden" name="mode" value="action">
 </form>
 
+<!-- 단축키 팝업 -->
+<div id="shortcutPopup" class="shortcut-popup" role="dialog" aria-modal="true" aria-label="단축키 안내">
+  <div class="shortcut-popup-inner">
+    <div class="sc-header">
+      <span class="sc-title">단축키 안내</span>
+      <button type="button" id="shortcutClose" class="sc-close">✕</button>
+    </div>
+    <table class="sc-table">
+      <tr><td class="sc-key">Alt + 1</td><td class="sc-desc">현재 내용 유지 + 줄바꿈 (일반)</td></tr>
+      <tr><td class="sc-key">Alt + 2</td><td class="sc-desc">현재 내용 유지 + 줄바꿈 후 <code>""</code> 추가</td></tr>
+      <tr><td class="sc-key">Alt + 3</td><td class="sc-desc">현재 내용 유지 + 줄바꿈 후 <code>**</code> 추가</td></tr>
+      <tr><td class="sc-key">Enter</td><td class="sc-desc">전송</td></tr>
+      <tr><td class="sc-key">Shift + Enter</td><td class="sc-desc">줄바꿈 (전송 안 함)</td></tr>
+      <tr><td class="sc-key">"</td><td class="sc-desc">자동으로 <code>""</code> 완성 후 커서 이동</td></tr>
+      <tr><td class="sc-key">*</td><td class="sc-desc">자동으로 <code>**</code> 완성 후 커서 이동</td></tr>
+    </table>
+  </div>
+</div>
+<div id="shortcutOverlay" class="shortcut-overlay"></div>
+
 <style>
-  .prompt-shell{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:10px 14px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,0.12);
-    background:rgba(255,255,255,0.05);
+  .prompt-shell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
   }
-  .prompt-bar{
+  .prompt-bar {
     font-family: ui-monospace, Menlo, Consolas, monospace;
     color: rgba(255,255,255,0.5);
-    user-select:none;
+    user-select: none;
   }
-  .prompt-input{
-    flex:1;
-    background:transparent;
-    border:none;
-    outline:none;
+  .prompt-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
     color: rgba(255,255,255,0.92);
     font-family: ui-monospace, Menlo, Consolas, monospace;
     padding: 6px 0;
+    resize: none;
+    overflow: hidden;
+    min-height: 24px;
+    line-height: 1.5;
   }
-  .prompt-input::placeholder{
-    color: rgba(255,255,255,0.35);
+  .prompt-input::placeholder { color: rgba(255,255,255,0.28); }
+
+  /* 단축키 버튼 */
+  .shortcut-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.55);
+    border-radius: 8px;
+    padding: 4px 9px;
+    font-size: .9rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: background .15s, color .15s;
+    flex-shrink: 0;
+  }
+  .shortcut-btn:hover {
+    background: rgba(255,255,255,0.11);
+    color: rgba(255,255,255,0.85);
+  }
+
+  /* 팝업 오버레이 */
+  .shortcut-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(2px);
+    z-index: 100;
+  }
+  .shortcut-overlay.show { display: block; }
+
+  /* 팝업 */
+  .shortcut-popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 101;
+    width: min(380px, calc(100vw - 32px));
+    background: rgba(14,18,28,0.98);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    padding: 22px 24px 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .shortcut-popup.show { display: block; }
+
+  .sc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .sc-title {
+    font-weight: 700;
+    font-size: .95rem;
+    color: #c8d6ff;
+    letter-spacing: .04em;
+  }
+  .sc-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.45);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    line-height: 1;
+  }
+  .sc-close:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
+
+  .sc-table { width: 100%; border-collapse: collapse; }
+  .sc-table tr + tr td { border-top: 1px solid rgba(255,255,255,0.06); }
+  .sc-table td { padding: 9px 4px; vertical-align: middle; }
+  .sc-key {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: .78rem;
+    color: #fff;
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 6px;
+    padding: 3px 8px;
+    white-space: nowrap;
+    width: 1%;
+  }
+  .sc-desc {
+    font-size: .82rem;
+    color: rgba(255,255,255,0.65);
+    padding-left: 14px;
+  }
+  .sc-desc code {
+    background: rgba(255,255,255,0.07);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: .78rem;
+    color: #a8c0ff;
   }
 </style>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const input = document.getElementById("messageInput");
-    const form = input.closest("form");
+document.addEventListener("DOMContentLoaded", function () {
+  document.getElementById("bottom").scrollIntoView({ behavior: "instant" });
 
-    // Enter: 전송, Shift+Enter: 줄바꿈(입력이 input이면 줄바꿈이 없으니, Shift+Enter는 무시해도 됨)
-    input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        form.submit();
-      }
-    });
+  const input  = document.getElementById("messageInput");
+  const form   = document.getElementById("gameForm");
+  const popup  = document.getElementById("shortcutPopup");
+  const overlay = document.getElementById("shortcutOverlay");
 
-    // 추천답변 버튼 클릭하면 입력창에 채우기
-    document.querySelectorAll(".js-suggest").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        input.value = btn.dataset.text;
-        input.focus();
-      });
+  // ── 팝업 열기/닫기 ──
+  function openPopup()  { popup.classList.add("show"); overlay.classList.add("show"); }
+  function closePopup() { popup.classList.remove("show"); overlay.classList.remove("show"); }
+
+  document.getElementById("shortcutBtn").addEventListener("click", openPopup);
+  document.getElementById("shortcutClose").addEventListener("click", closePopup);
+  overlay.addEventListener("click", closePopup);
+
+  // ── textarea 높이 자동조절 ──
+  function autoResize() {
+    input.style.height = "auto";
+    input.style.height = input.scrollHeight + "px";
+  }
+  input.addEventListener("input", autoResize);
+
+  // ── 커서 위치에 감싸기 (자동완성용) ──
+  function insertWrap(open, close) {
+    const start    = input.selectionStart;
+    const end      = input.selectionEnd;
+    const val      = input.value;
+    const selected = val.slice(start, end);
+    input.value    = val.slice(0, start) + open + selected + close + val.slice(end);
+    const cursor   = start + open.length + selected.length;
+    input.setSelectionRange(cursor, cursor);
+    input.focus();
+    autoResize();
+  }
+
+  // ── 현재 내용 뒤에 줄바꿈 후 감싸기 (Alt 단축키용) ──
+  function appendWrap(open, close) {
+    const val    = input.value;
+    const prefix = val.length > 0 ? "\n" : "";
+    input.value  = val + prefix + open + close;
+    const cursor = input.value.length - close.length;
+    input.setSelectionRange(cursor, cursor);
+    input.focus();
+    autoResize();
+  }
+
+  // ── 자동완성: " → ""  /  * → ** ──
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      form.submit();
+      return;
+    }
+
+    if (e.key === '"' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      input.value.length > 0 ? appendWrap('"', '"') : insertWrap('"', '"');
+      return;
+    }
+
+    if (e.key === "*" && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      input.value.length > 0 ? appendWrap("*", "*") : insertWrap("*", "*");
+      return;
+    }
+  });
+
+  // ── 전역 단축키 ──
+  document.addEventListener("keydown", function (e) {
+    if (!e.altKey) return;
+
+    if (e.key === "1") {
+      e.preventDefault();
+      const val = input.value;
+      input.value = val + (val.length > 0 ? "\n" : "");
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+      input.focus();
+      autoResize();
+    } else if (e.key === "2") {
+      e.preventDefault();
+      appendWrap('"', '"');
+    } else if (e.key === "3") {
+      e.preventDefault();
+      appendWrap("*", "*");
+    }
+  });
+
+  // ── Escape로 팝업 닫기 ──
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closePopup();
+  });
+
+  // ── 추천답변 버튼 ──
+  document.querySelectorAll(".js-suggest").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      input.value = btn.dataset.text;
+      input.focus();
     });
   });
+});
 </script>
 
 {% endblock %}

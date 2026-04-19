@@ -1,8 +1,16 @@
+import json
+import logging
+import os
+
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
+from groq import Groq
 from profiles.models import Profile
 from .models import GameSession, GameEvent
+
+logger = logging.getLogger(__name__)
+_groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY")) if os.environ.get("GROQ_API_KEY") else None
 
 
 def _append_event(session, turn, kind, content="", image_url="", payload=None):
@@ -35,6 +43,78 @@ def _make_suggestions_avoiding_repeat(session, base_pool, k=3):
     filtered = [s for s in base_pool if s.strip() and s.strip() not in seen]
     pool = filtered if len(filtered) >= k else base_pool
     return pool[:k]
+
+
+_SYSTEM_TEMPLATE = """\
+너는 인터랙티브 소설 게임의 내레이터 AI다.
+플레이어 캐릭터 정보:
+  이름: {name}
+  성별: {gender}
+  나이: {age}세
+  분위기: {vibe}
+
+규칙:
+- 매 응답은 반드시 아래 JSON 형식만 출력한다. 설명이나 마크다운 코드블록 없이.
+{{"story": "3~5문장의 장면 묘사나 스토리 진행", "suggestions": ["선택지1", "선택지2", "선택지3"]}}
+- story는 한국어 현재형으로, 2인칭 시점으로 작성한다.
+- suggestions는 플레이어가 바로 선택할 수 있는 행동 3가지다.
+"""
+
+_KIND_TO_ROLE = {
+    "USER_ACTION": "user",
+    "USER_DIALOGUE": "user",
+    "STORY_TEXT": "assistant",
+    "SUGGESTIONS": None,
+    "INFO_PANEL": None,
+}
+
+
+def _build_history(session, limit=10):
+    events = (
+        session.events
+        .filter(kind__in=["USER_ACTION", "USER_DIALOGUE", "STORY_TEXT"])
+        .order_by("-created_at")[:limit]
+    )
+    messages = []
+    for ev in reversed(list(events)):
+        role = _KIND_TO_ROLE.get(ev.kind)
+        if role is None:
+            continue
+        prefix = "*" if ev.kind == "USER_ACTION" else ""
+        suffix = "*" if ev.kind == "USER_ACTION" else ""
+        messages.append({"role": role, "content": f"{prefix}{ev.content}{suffix}"})
+    return messages
+
+
+def _groq_engine(user_text, session, mode):
+    if _groq_client is None:
+        raise RuntimeError("GROQ_API_KEY not set")
+
+    p = session.profile
+    system_prompt = _SYSTEM_TEMPLATE.format(
+        name=p.name,
+        gender=p.gender,
+        age=p.age,
+        vibe=p.vibe_text or "특별한 분위기 없음",
+    )
+
+    history = _build_history(session)
+
+    user_msg = f'*{user_text}*' if mode == "action" else f'"{user_text}"'
+    history.append({"role": "user", "content": user_msg})
+
+    response = _groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "system", "content": system_prompt}] + history,
+        temperature=0.85,
+        max_tokens=512,
+    )
+
+    raw = response.choices[0].message.content.strip()
+    data = json.loads(raw)
+    story = data.get("story", "")
+    suggestions = data.get("suggestions", [])[:3]
+    return story, suggestions
 
 
 def _dummy_engine(user_text, session):
@@ -99,7 +179,8 @@ def game_view(request, profile_id):
     profile = get_object_or_404(
         Profile, id=profile_id, user=request.user, is_deleted=False
     )
-    session, created = GameSession.objects.get_or_create(profile=profile)
+    game_id = request.session.get("active_game_id", 1)
+    session, created = GameSession.objects.get_or_create(profile=profile, game_id=game_id)
 
     if created:
         _append_event(session, session.turn, "STORY_TEXT", content="게임이 시작됐다.")
@@ -118,7 +199,8 @@ def game_turn(request, profile_id):
     profile = get_object_or_404(
         Profile, id=profile_id, user=request.user, is_deleted=False
     )
-    session, _ = GameSession.objects.get_or_create(profile=profile)
+    game_id = request.session.get("active_game_id", 1)
+    session, _ = GameSession.objects.get_or_create(profile=profile, game_id=game_id)
 
     raw_text = (request.POST.get("message") or "").strip()
 
@@ -145,9 +227,16 @@ def game_turn(request, profile_id):
     else:
         _append_event(session, session.turn, "USER_ACTION", content=user_text)
 
-    story, info_text, suggestions = _dummy_engine(user_text, session)
+    try:
+        story, suggestions = _groq_engine(user_text, session, mode)
+        info_text = None
+    except Exception as exc:
+        logger.warning("Groq engine failed (%s), using dummy fallback", exc)
+        story, info_text, suggestions = _dummy_engine(user_text, session)
+
     _append_event(session, session.turn, "STORY_TEXT", content=story)
-    _append_event(session, session.turn, "INFO_PANEL", content=info_text)
+    if info_text:
+        _append_event(session, session.turn, "INFO_PANEL", content=info_text)
     _append_event(session, session.turn, "SUGGESTIONS", payload={"items": suggestions})
 
     # 무조건 HttpResponse 반환

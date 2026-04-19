@@ -13,10 +13,10 @@ def profile_list(request):
     )
     by_slot = {p.slot: p for p in profiles}
 
+    game_id = request.GET.get("game_id", "1")
     context = {
-        "p1": by_slot.get(1),
-        "p2": by_slot.get(2),
-        "p3": by_slot.get(3),
+        "slots": [(n, by_slot.get(n)) for n in range(1, 4)],
+        "game_id": game_id,
     }
     return render(request, "profiles/profile_list.html", context)
 
@@ -47,7 +47,9 @@ def profile_create(request):
                 profile.save()
                 return redirect("profiles:list")
     else:
-        form = ProfileForm()
+        slot = request.GET.get("slot")
+        initial = {"slot": slot} if slot in ("1", "2", "3") else {}
+        form = ProfileForm(initial=initial)
 
     return render(request, "profiles/profile_form.html", {"form": form})
 
@@ -64,7 +66,11 @@ def profile_select(request, slot: int):
     if not profile:
         return redirect("profiles:list")
 
-    # 프로토타입: 세션에 선택 프로필 id 저장
+    try:
+        game_id = int(request.GET.get("game_id", 1))
+    except (ValueError, TypeError):
+        game_id = 1
+
     request.session["active_profile_id"] = profile.id
-    # 선택한 프로필로 바로 게임 화면으로 이동
+    request.session["active_game_id"] = game_id
     return redirect("game:view", profile_id=profile.id)

@@ -23,6 +23,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("profiles/", include("profiles.urls")),
     path("game/", include("game.urls")),
+    path("gamebuilder/", include("gamebuilder.urls")),
     path("accounts/", include("accounts.urls")),  # ✅ signup
     path("accounts/", include("django.contrib.auth.urls")),  # ✅ login/logout
 ]
