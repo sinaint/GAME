@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<style>
+  .auth-card {
+    max-width: 420px;
+    margin: 72px auto;
+    padding: 22px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  .auth-title {
+    font-size: 22px;
+    font-weight: 900;
+    margin-bottom: 6px;
+  }
+  .auth-sub {
+    opacity: .75;
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .auth-input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #fff;
+    outline: none;
+  }
+  .auth-input::placeholder { color: rgba(255,255,255,0.45); }
+  .auth-input:focus {
+    border-color: rgba(25, 135, 84, 0.6);
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+  }
+  .auth-label {
+    font-size: 12px;
+    opacity: .8;
+    margin-bottom: 6px;
+  }
+  .auth-btn {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(25, 135, 84, 0.6);
+    background: rgba(25, 135, 84, 0.25);
+    color: #fff;
+    font-weight: 800;
+  }
+  .auth-btn:hover { background: rgba(25, 135, 84, 0.35); }
+  .auth-error {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(220, 53, 69, 0.12);
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    color: rgba(255,255,255,0.9);
+    font-size: 13px;
+  }
+  .auth-row { margin-bottom: 12px; }
+</style>
+
+<div class="auth-card">
+  <div class="auth-title">로그인</div>
+  <div class="auth-sub">NOVA에서 내 기록(마이 로그)을 저장하려면 로그인해줘.</div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="auth-row">
+      <div class="auth-label">아이디</div>
+      <input class="auth-input" type="text" name="username" autocomplete="username" required>
+    </div>
+
+    <div class="auth-row">
+      <div class="auth-label">비밀번호</div>
+      <input class="auth-input" type="password" name="password" autocomplete="current-password" required>
+    </div>
+
+    <button class="auth-btn" type="submit">로그인</button>
+
+    {% if form.errors %}
+      <div class="auth-error">
+        아이디 또는 비밀번호가 올바르지 않습니다.
+      </div>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

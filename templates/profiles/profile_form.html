@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}프로필 생성{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">프로필 생성</h1>
+
+<!-- 프로필 생성 폼 시작 -->
+<form method="post" class="card p-4 shadow-sm">
+  {% csrf_token %} <!-- CSRF 보안 토큰 -->
+
+  <!-- 슬롯 선택 -->
+  <div class="mb-3">
+    <label class="form-label"><b>{{ form.slot.label }}</b></label>
+    {{ form.slot }} <!-- 기본 드롭다운 -->
+  </div>
+
+  <!-- 이름 입력 -->
+  <div class="mb-3">
+    <label class="form-label"><b>{{ form.name.label }}</b></label>
+    {{ form.name }} <!-- 텍스트 입력 -->
+  </div>
+
+  <!-- ========================= -->
+  <!-- 성별 (드롭다운 → 버튼 선택 방식) -->
+  <!-- ========================= -->
+  <div class="mb-3">
+    <label class="form-label d-block">
+      <b>{{ form.gender.label }}</b>
+    </label>
+
+    <!-- 에러 발생 시 출력 -->
+    {% if form.gender.errors %}
+      <div class="text-danger small mb-2">
+        {{ form.gender.errors }}
+      </div>
+    {% endif %}
+
+    <!-- Bootstrap 버튼 그룹 -->
+    <div class="btn-group w-100" role="group">
+
+      <!-- 남자 선택 버튼 -->
+      <input
+        type="radio"
+        class="btn-check"
+        name="gender"
+        id="gender_m"
+        value="남자"
+        autocomplete="off"
+        {% if form.gender.value == "남자" or not form.gender.value %}
+          checked
+        {% endif %}
+      >
+      <label class="btn btn-outline-primary" for="gender_m">
+        남자
+      </label>
+
+      <!-- 여자 선택 버튼 -->
+      <input
+        type="radio"
+        class="btn-check"
+        name="gender"
+        id="gender_f"
+        value="여자"
+        autocomplete="off"
+        {% if form.gender.value == "여자" %}
+          checked
+        {% endif %}
+      >
+      <label class="btn btn-outline-danger" for="gender_f">
+        여자
+      </label>
+
+    </div>
+  </div>
+
+  <!-- 나이 입력 -->
+  <div class="mb-3">
+    <label class="form-label"><b>{{ form.age.label }}</b></label>
+    {{ form.age }}
+  </div>
+
+  <hr class="my-4">
+
+  <!-- 외모 입력 -->
+  <div class="mb-3">
+    <label class="form-label"><b>{{ form.face_text.label }}</b></label>
+    {{ form.face_text }}
+  </div>
+
+  <!-- 체형 입력 -->
+  <div class="mb-3">
+    <label class="form-label"><b>{{ form.body_text.label }}</b></label>
+    {{ form.body_text }}
+  </div>
+
+  <!-- 분위기 입력 -->
+  <div class="mb-3">
+    <label class="form-label"><b>{{ form.vibe_text.label }}</b></label>
+    {{ form.vibe_text }}
+  </div>
+
+  <!-- 버튼 영역 -->
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-dark">
+      저장
+    </button>
+
+    <a href="{% url 'profiles:list' %}" class="btn btn-outline-secondary">
+      목록으로
+    </a>
+  </div>
+
+</form>
+{% endblock %}

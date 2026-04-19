@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>게임 시작</title>
+</head>
+<body>
+  <h1>게임 시작 화면</h1>
+
+  <p><b>선택된 프로필</b></p>
+  <ul>
+    <li>이름: {{ profile.name }}</li>
+    <li>성별/나이: {{ profile.gender }} / {{ profile.age }}</li>
+    <li>외모: {{ profile.face_text }}</li>
+    <li>체형: {{ profile.body_text }}</li>
+    <li>분위기: {{ profile.vibe_text }}</li>
+  </ul>
+
+  <hr>
+
+  <p>여기가 앞으로 게임이 진행될 공간이다.</p>
+
+  <p><a href="{% url 'profiles:list' %}">프로필 화면으로 돌아가기</a></p>
+</body>
+</html>

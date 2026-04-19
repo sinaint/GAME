@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>프로필 선택</title>
+</head>
+<body>
+  <h1>프로필 선택 (최대 3개)</h1>
+
+  <p><a href="{% url 'profiles:create' %}">새 프로필 만들기</a></p>
+  <hr>
+
+  <h2>슬롯 1</h2>
+  {% if p1 %}
+    <div style="padding:12px;border:1px solid #ccc;margin-bottom:12px;">
+      <div><b>이름:</b> {{ p1.name }}</div>
+      <div><b>성별/나이:</b> {{ p1.gender }} / {{ p1.age }}</div>
+      <div><b>외모:</b> {{ p1.face_text }}</div>
+      <div><b>체형:</b> {{ p1.body_text }}</div>
+      <div><b>분위기:</b> {{ p1.vibe_text }}</div>
+      <p><a href="{% url 'profiles:select' 1 %}">이 프로필로 시작</a></p>
+    </div>
+  {% else %}
+    <div style="padding:12px;border:1px dashed #aaa;margin-bottom:12px;">비어 있음</div>
+  {% endif %}
+
+  <h2>슬롯 2</h2>
+  {% if p2 %}
+    <div style="padding:12px;border:1px solid #ccc;margin-bottom:12px;">
+      <div><b>이름:</b> {{ p2.name }}</div>
+      <div><b>성별/나이:</b> {{ p2.gender }} / {{ p2.age }}</div>
+      <div><b>외모:</b> {{ p2.face_text }}</div>
+      <div><b>체형:</b> {{ p2.body_text }}</div>
+      <div><b>분위기:</b> {{ p2.vibe_text }}</div>
+      <p><a href="{% url 'profiles:select' 2 %}">이 프로필로 시작</a></p>
+    </div>
+  {% else %}
+    <div style="padding:12px;border:1px dashed #aaa;margin-bottom:12px;">비어 있음</div>
+  {% endif %}
+
+  <h2>슬롯 3</h2>
+  {% if p3 %}
+    <div style="padding:12px;border:1px solid #ccc;margin-bottom:12px;">
+      <div><b>이름:</b> {{ p3.name }}</div>
+      <div><b>성별/나이:</b> {{ p3.gender }} / {{ p3.age }}</div>
+      <div><b>외모:</b> {{ p3.face_text }}</div>
+      <div><b>체형:</b> {{ p3.body_text }}</div>
+      <div><b>분위기:</b> {{ p3.vibe_text }}</div>
+      <p><a href="{% url 'profiles:select' 3 %}">이 프로필로 시작</a></p>
+    </div>
+  {% else %}
+    <div style="padding:12px;border:1px dashed #aaa;margin-bottom:12px;">비어 있음</div>
+  {% endif %}
+
+  <hr>
+  <p>현재 선택된 프로필 ID(세션): {{ request.session.active_profile_id }}</p>
+</body>
+</html>
