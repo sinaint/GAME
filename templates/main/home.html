@@ -2,6 +2,8 @@
 {% load static %}
 {% block title %}Home{% endblock %}
 
+{% block topbar %}{% endblock %}
+
 {% block content %}
 <style>
   /* ── 검색 입력 ── */
@@ -191,7 +193,7 @@
       <button type="button" class="hamburger-btn" id="drawerOpenBtn" aria-label="menu">
         <div class="hamburger-lines"><span></span><span></span><span></span></div>
       </button>
-      <div style="font-weight:900;font-size:28px;">NOVA</div>
+      <a href="/" style="font-weight:900;font-size:28px;color:#fff;text-decoration:none;">NOVA</a>
       <div class="d-flex gap-3" style="opacity:.9;">
         <a href="#" class="text-decoration-none text-light">월드</a>
         <a href="#" class="text-decoration-none text-light">마이 로그</a>
@@ -215,7 +217,10 @@
           {% if user.is_authenticated %}
             <a class="user-item" href="{% url 'profiles:list' %}">프로필</a>
             <div class="user-sep"></div>
-            <a class="user-item" href="{% url 'logout' %}">로그아웃</a>
+            <form method="post" action="{% url 'logout' %}" style="margin:0;">
+              {% csrf_token %}
+              <button type="submit" class="user-item" style="width:100%; background:none; border:none; text-align:left; cursor:pointer;">로그아웃</button>
+            </form>
           {% else %}
             <a class="user-item" href="{% url 'login' %}">로그인</a>
             <a class="user-item" href="{% url 'accounts:signup' %}">회원가입</a>
@@ -289,7 +294,10 @@
     <div class="drawer-muted">계정</div>
     {% if user.is_authenticated %}
       <a class="drawer-link" href="{% url 'profiles:list' %}">프로필 <span style="opacity:.5;">→</span></a>
-      <a class="drawer-link" href="{% url 'logout' %}">로그아웃 <span style="opacity:.5;">→</span></a>
+      <form method="post" action="{% url 'logout' %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="drawer-link" style="width:100%; background:none; border:none; text-align:left; cursor:pointer;">로그아웃 <span style="opacity:.5;">→</span></button>
+      </form>
     {% else %}
       <a class="drawer-link" href="{% url 'login' %}">로그인 <span style="opacity:.5;">→</span></a>
       <a class="drawer-link" href="{% url 'accounts:signup' %}">회원가입 <span style="opacity:.5;">→</span></a>

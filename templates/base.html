@@ -17,6 +17,12 @@
 <!-- body는 반드시 1개만 있어야 함 -->
 <body class="bg-dark text-light">
 
+  {% block topbar %}
+  <div style="flex-shrink:0; padding: 16px 20px;">
+    <a href="/" style="font-weight:900; font-size:22px; letter-spacing:-.5px; color:#fff; text-decoration:none;">NOVA</a>
+  </div>
+  {% endblock %}
+
   <div class="page-wrap">
     {% block content %}{% endblock %}
   </div>

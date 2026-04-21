@@ -6,11 +6,22 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from groq import Groq
+from gamebuilder.models import Game
 from profiles.models import Profile
 from .models import GameSession, GameEvent
 
 logger = logging.getLogger(__name__)
 _groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY")) if os.environ.get("GROQ_API_KEY") else None
+
+_GAME_TITLES = {
+    1: "무림: 돌아온 당신",
+    2: "혈검: 천하제일",
+    3: "SF: 잃어버린 행성",
+    4: "계절의 끝에서",
+    5: "용의 시대",
+    6: "마지막 도시",
+    7: "도시: 미스터리 의뢰",
+}
 
 
 def _append_event(session, turn, kind, content="", image_url="", payload=None):
@@ -55,9 +66,11 @@ _SYSTEM_TEMPLATE = """\
 
 규칙:
 - 매 응답은 반드시 아래 JSON 형식만 출력한다. 설명이나 마크다운 코드블록 없이.
-{{"story": "3~5문장의 장면 묘사나 스토리 진행", "suggestions": ["선택지1", "선택지2", "선택지3"]}}
+{{"story": "3~5문장의 장면 묘사나 스토리 진행", "suggestions": ["선택지1", "선택지2", "선택지3"], "info": {{"턴": "T-N", "위치": "현재 장소", "상태": "캐릭터의 현재 감정·상태 한 줄", "소지품": "아이템 또는 돈 정보", "관계": ["NPC명 😊", "NPC명 😐"]}}}}
 - story는 한국어 현재형으로, 2인칭 시점으로 작성한다.
 - suggestions는 플레이어가 바로 선택할 수 있는 행동 3가지다.
+- info.턴은 "T-1", "T-2" 형식으로 현재 턴 번호를 쓴다.
+- info.관계는 등장한 NPC만 포함하고, 관계 정도에 따라 😊😐😠 이모지를 붙인다.
 """
 
 _KIND_TO_ROLE = {
@@ -114,7 +127,8 @@ def _groq_engine(user_text, session, mode):
     data = json.loads(raw)
     story = data.get("story", "")
     suggestions = data.get("suggestions", [])[:3]
-    return story, suggestions
+    info = data.get("info", {})
+    return story, suggestions, info
 
 
 def _dummy_engine(user_text, session):
@@ -149,15 +163,19 @@ def _dummy_engine(user_text, session):
 
     suggestions = _make_suggestions_avoiding_repeat(session, base_pool, k=3)
 
-    info_text = (
-        f"turn={session.turn}\n" f"mood={mood}\n" f"profile={session.profile.name}\n"
-    )
+    info = {
+        "턴": f"T-{session.turn}",
+        "위치": "알 수 없음",
+        "상태": f"기분 {mood:+d}",
+        "소지품": "-",
+        "관계": [],
+    }
 
     state["mood"] = mood
     session.state_json = state
     session.save(update_fields=["state_json"])
 
-    return story, info_text, suggestions
+    return story, info, suggestions
 
 
 @login_required
@@ -186,10 +204,19 @@ def game_view(request, profile_id):
         _append_event(session, session.turn, "STORY_TEXT", content="게임이 시작됐다.")
 
     events = session.events.order_by("created_at")
+    latest_sugg_ev = session.events.filter(kind="SUGGESTIONS").order_by("-created_at").first()
+    latest_suggestions = (latest_sugg_ev.payload_json or {}).get("items", []) if latest_sugg_ev else []
+    game_title = _GAME_TITLES.get(session.game_id, f"게임 #{session.game_id}")
     return render(
         request,
         "game/game.html",
-        {"profile": profile, "session": session, "events": events},
+        {
+            "profile": profile,
+            "session": session,
+            "events": events,
+            "game_title": game_title,
+            "latest_suggestions": latest_suggestions,
+        },
     )
 
 
@@ -228,15 +255,14 @@ def game_turn(request, profile_id):
         _append_event(session, session.turn, "USER_ACTION", content=user_text)
 
     try:
-        story, suggestions = _groq_engine(user_text, session, mode)
-        info_text = None
+        story, suggestions, info = _groq_engine(user_text, session, mode)
     except Exception as exc:
         logger.warning("Groq engine failed (%s), using dummy fallback", exc)
-        story, info_text, suggestions = _dummy_engine(user_text, session)
+        story, info, suggestions = _dummy_engine(user_text, session)
 
     _append_event(session, session.turn, "STORY_TEXT", content=story)
-    if info_text:
-        _append_event(session, session.turn, "INFO_PANEL", content=info_text)
+    if info:
+        _append_event(session, session.turn, "INFO_PANEL", payload={"info": info})
     _append_event(session, session.turn, "SUGGESTIONS", payload={"items": suggestions})
 
     # 무조건 HttpResponse 반환

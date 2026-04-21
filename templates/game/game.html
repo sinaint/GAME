@@ -1,317 +1,765 @@
 {% extends "base.html" %}
-{% block title %}Game{% endblock %}
+{% block title %}{{ game_title }}{% endblock %}
+
+{# 네비바: 왼쪽=NOVA, 가운데=게임제목+프로필, 오른쪽=··· #}
+{% block topbar %}
+<nav class="game-nav">
+  <a href="/" class="nav-logo">NOVA</a>
+  <div class="nav-center">
+    <span class="nav-game-title">{{ game_title }}</span>
+    <span class="nav-profile">{{ profile.name }}</span>
+  </div>
+  <button type="button" class="nav-menu-btn" id="rightPanelBtn" title="설정">···</button>
+</nav>
+{% endblock %}
+
 {% block content %}
 
-<div class="d-flex flex-column gap-3 py-4">
-
-    {% for e in events %}
-
-      {% if e.kind == "USER_ACTION" %}
-        <div class="p-2 rounded" style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65);">
-          *{{ e.content }}*
-        </div>
-
-      {% elif e.kind == "USER_DIALOGUE" %}
-        <div class="p-2 rounded" style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.92); font-weight: 700;">
-          "{{ e.content }}"
-        </div>
-
-      {% elif e.kind == "STORY_TEXT" %}
-        <div style="color: rgba(255,255,255,0.8); line-height: 1.7;">
-          {{ e.content|linebreaksbr }}
-        </div>
-
-      {% elif e.kind == "SUGGESTIONS" %}
-        <div class="d-flex flex-wrap gap-2">
-          {% for s in e.payload_json.items %}
-            <button type="button" class="btn btn-outline-light btn-sm js-suggest" data-text="{{ s }}">
-              {{ s }}
-            </button>
-          {% endfor %}
-        </div>
-
-      {% endif %}
-
-    {% endfor %}
-
-  <div id="bottom"></div>
-</div>
-
-<!-- 입력 폼 -->
-<form method="post" action="{% url 'game:turn' profile.id %}" class="mt-4" id="gameForm">
-  {% csrf_token %}
-
-  <div class="prompt-shell">
-    <span class="prompt-bar">|</span>
-
-    <textarea
-      id="messageInput"
-      name="message"
-      class="prompt-input"
-      rows="1"
-      placeholder='Alt+2 대사  Alt+3 행동  또는 직접 입력'
-      autocomplete="off"
-    ></textarea>
-
-    <!-- 단축키 안내 버튼 -->
-    <button type="button" id="shortcutBtn" class="shortcut-btn" title="단축키 안내">⌨</button>
-
-    <button class="btn btn-success btn-sm" type="submit">전송</button>
+{# ── 왼쪽 사이드바 ── #}
+<aside class="game-left">
+  <div class="left-header">
+    <span class="left-title">세션</span>
+    <button type="button" class="left-edit-btn" title="편집">✎</button>
   </div>
-
-  <input type="hidden" name="mode" value="action">
-</form>
-
-<!-- 단축키 팝업 -->
-<div id="shortcutPopup" class="shortcut-popup" role="dialog" aria-modal="true" aria-label="단축키 안내">
-  <div class="shortcut-popup-inner">
-    <div class="sc-header">
-      <span class="sc-title">단축키 안내</span>
-      <button type="button" id="shortcutClose" class="sc-close">✕</button>
+  <div class="session-list">
+    <div class="sess-item active">
+      <div class="sess-name">{{ game_title }}</div>
+      <div class="sess-meta">턴 {{ session.turn }} · {{ profile.name }}</div>
     </div>
-    <table class="sc-table">
-      <tr><td class="sc-key">Alt + 1</td><td class="sc-desc">현재 내용 유지 + 줄바꿈 (일반)</td></tr>
-      <tr><td class="sc-key">Alt + 2</td><td class="sc-desc">현재 내용 유지 + 줄바꿈 후 <code>""</code> 추가</td></tr>
-      <tr><td class="sc-key">Alt + 3</td><td class="sc-desc">현재 내용 유지 + 줄바꿈 후 <code>**</code> 추가</td></tr>
-      <tr><td class="sc-key">Enter</td><td class="sc-desc">전송</td></tr>
-      <tr><td class="sc-key">Shift + Enter</td><td class="sc-desc">줄바꿈 (전송 안 함)</td></tr>
-      <tr><td class="sc-key">"</td><td class="sc-desc">자동으로 <code>""</code> 완성 후 커서 이동</td></tr>
-      <tr><td class="sc-key">*</td><td class="sc-desc">자동으로 <code>**</code> 완성 후 커서 이동</td></tr>
-    </table>
+  </div>
+</aside>
+
+{# ── 가운데: 스토리 + 입력창 ── #}
+<div class="game-center">
+
+  {# 스토리 스크롤 영역 #}
+  <div class="story-scroll" id="storyScroll">
+    <div class="story-inner" id="storyArea">
+
+      {% for e in events %}
+        {% if e.kind == "USER_ACTION" %}
+          <div class="ev-action">*{{ e.content }}*</div>
+
+        {% elif e.kind == "USER_DIALOGUE" %}
+          <div class="ev-dialogue">"{{ e.content }}"</div>
+
+        {% elif e.kind == "STORY_TEXT" %}
+          <div class="ev-story">{{ e.content|linebreaksbr }}</div>
+
+        {% elif e.kind == "SUGGESTIONS" %}
+          {# 스토리 흐름에선 표시하지 않음 — 입력창에 최신 것만 표시 #}
+
+        {% elif e.kind == "INFO_PANEL" %}
+          {% with info=e.payload_json.info %}
+          <div class="info-panel">
+            {% if info.턴 %}<div class="info-item"><span class="ii-icon">🔢</span><span class="ii-label">턴</span><span class="ii-val">{{ info.턴 }}</span></div>{% endif %}
+            {% if info.위치 %}<div class="info-item"><span class="ii-icon">📍</span><span class="ii-label">위치</span><span class="ii-val">{{ info.위치 }}</span></div>{% endif %}
+            {% if info.상태 %}<div class="info-item"><span class="ii-icon">💫</span><span class="ii-label">상태</span><span class="ii-val">{{ info.상태 }}</span></div>{% endif %}
+            {% if info.소지품 %}<div class="info-item"><span class="ii-icon">🎒</span><span class="ii-label">소지품</span><span class="ii-val">{{ info.소지품 }}</span></div>{% endif %}
+            {% if info.관계 %}<div class="info-item"><span class="ii-icon">🤝</span><span class="ii-label">관계</span><span class="ii-val">{% for r in info.관계 %}{{ r }}{% if not forloop.last %} · {% endif %}{% endfor %}</span></div>{% endif %}
+          </div>
+          {% endwith %}
+        {% endif %}
+      {% endfor %}
+
+    </div>
+  </div>{# /story-scroll #}
+
+  {# 하단 입력창 #}
+  <div class="input-bar">
+
+    {# 입력 폼 #}
+    <form method="post" action="{% url 'game:turn' profile.id %}" id="gameForm">
+      {% csrf_token %}
+      <div class="input-row">
+        <div class="mode-btn-wrap">
+          <button type="button" class="mode-btn" id="modeBtn" title="추천 선택지 / 모드 전환">*</button>
+          <div class="sugg-popup" id="suggPopup">
+            {% for s in latest_suggestions %}
+              <button type="button" class="sugg-chip js-suggest" data-text="{{ s }}">{{ s }}</button>
+            {% empty %}
+              <div class="sugg-empty">추천 선택지 없음</div>
+            {% endfor %}
+          </div>
+        </div>
+        <textarea
+          id="messageInput"
+          name="message"
+          class="prompt-input"
+          rows="1"
+          placeholder="행동 또는 대사를 입력해봐"
+          autocomplete="off"
+        ></textarea>
+        <button class="send-btn" type="submit" title="전송">▶</button>
+      </div>
+      <input type="hidden" name="mode" id="modeField" value="action">
+    </form>
+
+  </div>{# /input-bar #}
+
+</div>{# /game-center #}
+
+{# ── 오른쪽 설정 패널 (flex sibling) ── #}
+<aside class="game-right" id="gameRight">
+  <div class="game-right-inner">
+    <div class="right-header">
+      <span class="right-title">설정</span>
+      <button type="button" class="right-close" id="rightClose">✕</button>
+    </div>
+
+    {# 탭 버튼 #}
+    <div class="rtab-bar">
+      <button type="button" class="rtab active" data-tab="chatTab">채팅 옵션</button>
+      <button type="button" class="rtab" data-tab="styleTab">스타일 옵션</button>
+    </div>
+
+    {# 채팅 옵션 탭 #}
+    <div class="rtab-panel" id="chatTab">
+      <nav class="right-menu">
+        <button type="button" class="right-item" data-popup="notePopup"><span class="ri-icon">📝</span>유저 노트</button>
+        <button type="button" class="right-item" data-popup="memoryPopup"><span class="ri-icon">🧠</span>요약 메모리</button>
+        <button type="button" class="right-item" data-popup="shortcutPopup"><span class="ri-icon">⌨</span>키보드 단축키</button>
+        <button type="button" class="right-item" data-popup="profilePopup"><span class="ri-icon">👤</span>대화 프로필</button>
+      </nav>
+    </div>
+
+    {# 스타일 옵션 탭 #}
+    <div class="rtab-panel" id="styleTab" style="display:none;">
+      <div class="sopt-section">
+        <div class="sopt-label">글자 크기 <span class="sopt-val" id="fontSizeVal">16px</span></div>
+        <input type="range" class="sopt-range" id="fontSizeRange" min="14" max="24" step="1" value="16">
+      </div>
+      <div class="sopt-section">
+        <div class="sopt-label">채팅창 너비</div>
+        <div class="sopt-radio-group">
+          <label class="sopt-radio"><input type="radio" name="chatWidth" value="560"> 좁게</label>
+          <label class="sopt-radio"><input type="radio" name="chatWidth" value="680" checked> 기본</label>
+          <label class="sopt-radio"><input type="radio" name="chatWidth" value="860"> 넓게</label>
+        </div>
+      </div>
+      <div class="sopt-section">
+        <div class="sopt-label">텍스트 정렬</div>
+        <div class="sopt-radio-group">
+          <label class="sopt-radio"><input type="radio" name="chatAlign" value="left" checked> 왼쪽</label>
+          <label class="sopt-radio"><input type="radio" name="chatAlign" value="center"> 가운데</label>
+          <label class="sopt-radio"><input type="radio" name="chatAlign" value="right"> 오른쪽</label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</aside>
+
+{# ── 모달 오버레이 ── #}
+<div class="modal-overlay" id="modalOverlay"></div>
+
+{# 팝업: 유저 노트 #}
+<div class="modal-popup" id="notePopup">
+  <div class="mp-head"><span class="mp-title">📝 유저 노트</span><button class="mp-close js-mclose">✕</button></div>
+  <textarea class="note-ta" id="noteTextarea" placeholder="자유롭게 메모를 남겨봐. 새로고침해도 유지돼."></textarea>
+</div>
+
+{# 팝업: 요약 메모리 #}
+<div class="modal-popup" id="memoryPopup">
+  <div class="mp-head"><span class="mp-title">🧠 요약 메모리</span><button class="mp-close js-mclose">✕</button></div>
+  <p class="mp-muted">AI가 대화를 요약한 메모리가 여기 표시돼.</p>
+  <div class="mp-empty">아직 요약 메모리가 없어.</div>
+</div>
+
+{# 팝업: 키보드 단축키 #}
+<div class="modal-popup" id="shortcutPopup">
+  <div class="mp-head"><span class="mp-title">⌨ 키보드 단축키</span><button class="mp-close js-mclose">✕</button></div>
+  <table class="sc-tbl">
+    <tr><td class="sc-k">Alt + 1</td><td class="sc-d">줄바꿈 (일반)</td></tr>
+    <tr><td class="sc-k">Alt + 2</td><td class="sc-d">줄바꿈 후 <code>""</code> 추가</td></tr>
+    <tr><td class="sc-k">Alt + 3</td><td class="sc-d">줄바꿈 후 <code>**</code> 추가</td></tr>
+    <tr><td class="sc-k">Enter</td><td class="sc-d">전송</td></tr>
+    <tr><td class="sc-k">Shift+Enter</td><td class="sc-d">줄바꿈 (전송 안 함)</td></tr>
+    <tr><td class="sc-k">"</td><td class="sc-d">자동으로 <code>""</code> 완성</td></tr>
+    <tr><td class="sc-k">*</td><td class="sc-d">자동으로 <code>**</code> 완성</td></tr>
+    <tr><td class="sc-k">Escape</td><td class="sc-d">팝업 닫기</td></tr>
+  </table>
+</div>
+
+{# 팝업: 대화 프로필 #}
+<div class="modal-popup" id="profilePopup">
+  <div class="mp-head"><span class="mp-title">👤 대화 프로필</span><button class="mp-close js-mclose">✕</button></div>
+  <div class="prof-info">
+    <div class="pi-row"><span class="pi-lbl">이름</span><span class="pi-val">{{ profile.name }}</span></div>
+    <div class="pi-row"><span class="pi-lbl">성별</span><span class="pi-val">{{ profile.gender }}</span></div>
+    <div class="pi-row"><span class="pi-lbl">나이</span><span class="pi-val">{{ profile.age }}세</span></div>
+    {% if profile.face_text %}<div class="pi-row"><span class="pi-lbl">외모</span><span class="pi-val">{{ profile.face_text }}</span></div>{% endif %}
+    {% if profile.body_text %}<div class="pi-row"><span class="pi-lbl">체형</span><span class="pi-val">{{ profile.body_text }}</span></div>{% endif %}
+    {% if profile.vibe_text %}<div class="pi-row"><span class="pi-lbl">분위기</span><span class="pi-val">{{ profile.vibe_text }}</span></div>{% endif %}
   </div>
 </div>
-<div id="shortcutOverlay" class="shortcut-overlay"></div>
 
 <style>
-  .prompt-shell {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.05);
-  }
-  .prompt-bar {
-    font-family: ui-monospace, Menlo, Consolas, monospace;
-    color: rgba(255,255,255,0.5);
-    user-select: none;
-  }
-  .prompt-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: rgba(255,255,255,0.92);
-    font-family: ui-monospace, Menlo, Consolas, monospace;
-    padding: 6px 0;
-    resize: none;
-    overflow: hidden;
-    min-height: 24px;
-    line-height: 1.5;
-  }
-  .prompt-input::placeholder { color: rgba(255,255,255,0.28); }
+/* ══ 전체 레이아웃 ══ */
+html, body { height: 100%; overflow: hidden; }
+body { display: flex; flex-direction: column; }
 
-  /* 단축키 버튼 */
-  .shortcut-btn {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.55);
-    border-radius: 8px;
-    padding: 4px 9px;
-    font-size: .9rem;
-    cursor: pointer;
-    line-height: 1;
-    transition: background .15s, color .15s;
-    flex-shrink: 0;
-  }
-  .shortcut-btn:hover {
-    background: rgba(255,255,255,0.11);
-    color: rgba(255,255,255,0.85);
-  }
+/* base.html page-wrap → flex row (가운데 메인) */
+.page-wrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;          /* ← row */
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
 
-  /* 팝업 오버레이 */
-  .shortcut-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(2px);
-    z-index: 100;
-  }
-  .shortcut-overlay.show { display: block; }
+/* ══ 네비바 ══ */
+.game-nav {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 50px;
+  padding: 0 16px;
+  background: #0d0f1c;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  gap: 12px;
+}
+.nav-logo {
+  font-weight: 900; font-size: 18px; letter-spacing: -.4px;
+  color: #fff; text-decoration: none; flex-shrink: 0;
+}
+.nav-logo:hover { opacity: .75; }
+.nav-center {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.nav-game-title {
+  font-size: .88rem; font-weight: 700; color: rgba(255,255,255,0.88);
+  letter-spacing: .02em;
+}
+.nav-profile {
+  font-size: .68rem; color: rgba(255,255,255,0.32); letter-spacing: .06em;
+}
+.nav-menu-btn {
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.11);
+  color: rgba(255,255,255,0.65);
+  border-radius: 9px; padding: 3px 11px;
+  font-size: 1rem; letter-spacing: .18em; cursor: pointer; line-height: 1.7;
+  transition: background .14s, color .14s;
+}
+.nav-menu-btn:hover,
+.nav-menu-btn.active { background: rgba(255,255,255,0.10); color: #fff; border-color: rgba(255,255,255,0.22); }
 
-  /* 팝업 */
-  .shortcut-popup {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 101;
-    width: min(380px, calc(100vw - 32px));
-    background: rgba(14,18,28,0.98);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 16px;
-    padding: 22px 24px 20px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  }
-  .shortcut-popup.show { display: block; }
+/* ══ 왼쪽 사이드바 ══ */
+.game-left {
+  width: 200px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: #0b0d1a;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  display: flex; flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+.game-left::-webkit-scrollbar { width: 3px; }
+.game-left::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
 
-  .sc-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-  .sc-title {
-    font-weight: 700;
-    font-size: .95rem;
-    color: #c8d6ff;
-    letter-spacing: .04em;
-  }
-  .sc-close {
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.45);
-    font-size: 1rem;
-    cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 6px;
-    line-height: 1;
-  }
-  .sc-close:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
+.left-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+.left-title {
+  font-size: .69rem; font-weight: 700; letter-spacing: .1em;
+  color: rgba(255,255,255,0.35); text-transform: uppercase;
+}
+.left-edit-btn {
+  background: none; border: none; color: rgba(255,255,255,0.3);
+  font-size: .95rem; cursor: pointer; padding: 2px 5px; border-radius: 6px; line-height: 1;
+}
+.left-edit-btn:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.8); }
 
-  .sc-table { width: 100%; border-collapse: collapse; }
-  .sc-table tr + tr td { border-top: 1px solid rgba(255,255,255,0.06); }
-  .sc-table td { padding: 9px 4px; vertical-align: middle; }
-  .sc-key {
-    font-family: ui-monospace, Menlo, Consolas, monospace;
-    font-size: .78rem;
-    color: #fff;
-    background: rgba(255,255,255,0.09);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 6px;
-    padding: 3px 8px;
-    white-space: nowrap;
-    width: 1%;
-  }
-  .sc-desc {
-    font-size: .82rem;
-    color: rgba(255,255,255,0.65);
-    padding-left: 14px;
-  }
-  .sc-desc code {
-    background: rgba(255,255,255,0.07);
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-size: .78rem;
-    color: #a8c0ff;
-  }
+.session-list { padding: 8px; }
+.sess-item {
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  transition: background .14s;
+}
+.sess-item:hover { background: rgba(255,255,255,0.05); }
+.sess-item.active { background: rgba(74,122,255,0.14); border: 1px solid rgba(74,122,255,0.22); }
+.sess-name {
+  font-size: .75rem; font-weight: 600;
+  color: rgba(255,255,255,0.85); margin-bottom: 3px;
+}
+.sess-meta { font-size: .68rem; color: rgba(255,255,255,0.32); }
+
+/* ══ 가운데: 스토리 + 입력 ══ */
+.game-center {
+  flex: 1;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  background: #0a0c14;
+}
+
+/* 스토리 스크롤 */
+.story-scroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.09) transparent;
+}
+.story-scroll::-webkit-scrollbar { width: 4px; }
+.story-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.09); border-radius: 99px; }
+
+.story-inner {
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 24px 28px 16px;
+  max-width: 680px; margin: 0 auto; width: 100%;
+}
+
+/* 이벤트 스타일 — em 단위로 #storyArea font-size 상속 */
+.ev-action {
+  padding: 7px 12px; border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.45); font-size: .86em;
+}
+.ev-dialogue {
+  padding: 7px 12px; border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.9); font-weight: 700; font-size: .86em;
+}
+.ev-story { color: rgba(255,255,255,0.80); line-height: 1.8; font-size: .93em; }
+
+/* INFO 패널 */
+.info-panel {
+  display: flex; flex-direction: column; gap: 0;
+  background: rgba(80,140,255,0.05);
+  border: 1px solid rgba(80,140,255,0.14);
+  border-left: 3px solid rgba(80,140,255,0.4);
+  border-radius: 10px; padding: 10px 14px;
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .78rem;
+}
+.info-item { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; }
+.info-item + .info-item { border-top: 1px solid rgba(255,255,255,0.04); }
+.ii-icon  { width: 1.3em; flex-shrink: 0; text-align: center; }
+.ii-label { color: rgba(100,160,255,0.6); width: 4em; flex-shrink: 0; font-size: .72rem; letter-spacing: .04em; }
+.ii-val   { color: rgba(255,255,255,0.72); flex: 1; line-height: 1.4; }
+
+/* ══ 입력창 ══ */
+.input-bar {
+  flex-shrink: 0;
+  padding: 14px 20px 20px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  background: #0b0d1a;
+}
+
+/* 입력 행 */
+.input-row {
+  display: flex; align-items: flex-end; gap: 8px;
+  max-width: 680px; margin: 0 auto;
+}
+
+/* 모드 버튼 래퍼 (팝업 기준점) */
+.mode-btn-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* 모드/추천 버튼 (노란색) */
+.mode-btn {
+  width: 40px; height: 40px;
+  background: #f59e0b;
+  border: none;
+  color: #000;
+  border-radius: 10px; font-size: 1rem; font-weight: 700;
+  cursor: pointer; line-height: 1; transition: background .14s, transform .1s;
+  display: flex; align-items: center; justify-content: center;
+}
+.mode-btn:hover { background: #fbbf24; }
+.mode-btn:active { transform: scale(.92); }
+.mode-btn.dialogue-mode { background: #818cf8; color: #fff; }
+
+/* 추천 선택지 드롭업 */
+.sugg-popup {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 200;
+  background: #131629;
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 14px;
+  padding: 8px;
+  min-width: 220px;
+  max-width: 340px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+}
+.sugg-popup.open { display: flex; }
+.sugg-chip {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  color: rgba(255,255,255,0.80);
+  border-radius: 9px; padding: 7px 12px;
+  font-size: .82rem; cursor: pointer; text-align: left;
+  transition: background .12s, color .12s;
+  white-space: normal; word-break: keep-all;
+}
+.sugg-chip:hover { background: rgba(255,255,255,0.10); color: #fff; border-color: rgba(255,255,255,0.2); }
+.sugg-empty { font-size: .8rem; color: rgba(255,255,255,0.25); padding: 6px 12px; }
+
+/* 텍스트 입력 */
+.prompt-input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.11);
+  border-radius: 12px;
+  color: rgba(255,255,255,0.92);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: .88rem; line-height: 1.6;
+  padding: 10px 14px; resize: none; overflow: hidden;
+  min-height: 44px; outline: none;
+  transition: border-color .14s;
+}
+.prompt-input:focus { border-color: rgba(255,255,255,0.22); }
+.prompt-input::placeholder { color: rgba(255,255,255,0.2); }
+
+/* 전송 버튼 (초록 원형) */
+.send-btn {
+  flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #16a34a;
+  border: none; color: #fff;
+  font-size: .95rem; cursor: pointer; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .14s, transform .1s;
+}
+.send-btn:hover { background: #22c55e; }
+.send-btn:active { transform: scale(.93); }
+
+/* ══ 오른쪽 설정 패널 (flex sibling, 레이아웃 안에 포함) ══ */
+.game-right {
+  width: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: width .2s ease;
+  background: #0d0f1c;
+  border-left: 1px solid transparent;
+}
+.game-right.show {
+  width: 280px;
+  border-left-color: rgba(255,255,255,0.09);
+}
+.game-right-inner {
+  width: 280px;
+  height: 100%;
+  display: flex; flex-direction: column;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.right-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px; padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.right-title { font-weight: 800; font-size: .95rem; color: rgba(255,255,255,0.88); }
+.right-close {
+  background: none; border: none; color: rgba(255,255,255,0.38);
+  font-size: 1rem; cursor: pointer; padding: 3px 8px; border-radius: 7px; line-height: 1;
+}
+.right-close:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
+
+/* 탭 바 */
+.rtab-bar {
+  display: flex; gap: 4px;
+  margin-bottom: 14px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 9px; padding: 3px;
+}
+.rtab {
+  flex: 1; padding: 5px 0; border-radius: 7px;
+  background: none; border: none;
+  color: rgba(255,255,255,0.45); font-size: .76rem; font-weight: 600;
+  cursor: pointer; transition: background .13s, color .13s; text-align: center;
+}
+.rtab:hover { color: rgba(255,255,255,0.75); }
+.rtab.active { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.92); }
+
+/* 스타일 옵션 */
+.sopt-section { margin-bottom: 18px; }
+.sopt-label {
+  font-size: .74rem; color: rgba(255,255,255,0.42); letter-spacing: .05em;
+  text-transform: uppercase; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sopt-val { color: rgba(255,255,255,0.65); font-size: .78rem; text-transform: none; letter-spacing: 0; }
+.sopt-range {
+  width: 100%; accent-color: #4a7aff;
+  height: 4px; cursor: pointer;
+}
+.sopt-radio-group { display: flex; flex-direction: column; gap: 6px; }
+.sopt-radio {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .82rem; color: rgba(255,255,255,0.7);
+  cursor: pointer; padding: 5px 8px; border-radius: 8px;
+  transition: background .12s;
+}
+.sopt-radio:hover { background: rgba(255,255,255,0.05); }
+.sopt-radio input[type="radio"] { accent-color: #4a7aff; width: 14px; height: 14px; cursor: pointer; }
+
+.right-menu { display: flex; flex-direction: column; gap: 3px; }
+.right-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 10px; border-radius: 11px;
+  background: none; border: none; text-align: left;
+  color: rgba(255,255,255,0.75); font-size: .81rem;
+  cursor: pointer; transition: background .13s, color .13s; width: 100%;
+}
+.right-item:hover  { background: rgba(255,255,255,0.07); color: #fff; }
+.right-item.active { background: rgba(255,255,255,0.09); color: #fff; }
+.ri-icon { font-size: .95rem; width: 1.4em; text-align: center; flex-shrink: 0; }
+
+/* ══ 모달 ══ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(3px); z-index: 300;
+}
+.modal-overlay.show { display: block; }
+
+.modal-popup {
+  display: none; position: fixed;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 301; width: min(440px, calc(100vw - 32px));
+  background: #0f1220;
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+.modal-popup.show { display: block; }
+
+.mp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.mp-title { font-weight: 700; font-size: .94rem; color: #c8d6ff; letter-spacing: .02em; }
+.mp-close { background: none; border: none; color: rgba(255,255,255,0.38); font-size: 1rem; cursor: pointer; padding: 2px 7px; border-radius: 7px; line-height: 1; }
+.mp-close:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
+.mp-muted { font-size: .8rem; color: rgba(255,255,255,0.33); margin-bottom: 10px; }
+.mp-empty { font-size: .84rem; color: rgba(255,255,255,0.22); text-align: center; padding: 24px 0; }
+
+.note-ta {
+  width: 100%; height: 210px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 10px; color: rgba(255,255,255,0.85);
+  font-size: .86rem; line-height: 1.6; padding: 10px 12px; resize: vertical; outline: none;
+}
+.note-ta:focus { border-color: rgba(255,255,255,0.2); }
+.note-ta::placeholder { color: rgba(255,255,255,0.2); }
+
+.sc-tbl { width: 100%; border-collapse: collapse; }
+.sc-tbl tr + tr td { border-top: 1px solid rgba(255,255,255,0.05); }
+.sc-tbl td { padding: 8px 4px; vertical-align: middle; }
+.sc-k { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .74rem; color: #fff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.13); border-radius: 6px; padding: 3px 8px; white-space: nowrap; width: 1%; }
+.sc-d { font-size: .8rem; color: rgba(255,255,255,0.58); padding-left: 14px; }
+.sc-d code { background: rgba(255,255,255,0.07); border-radius: 4px; padding: 1px 5px; font-size: .74rem; color: #a8c0ff; }
+
+.prof-info { display: flex; flex-direction: column; }
+.pi-row { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.pi-row:last-child { border-bottom: none; }
+.pi-lbl { width: 4em; flex-shrink: 0; font-size: .76rem; color: rgba(100,160,255,0.6); letter-spacing: .04em; }
+.pi-val { font-size: .86rem; color: rgba(255,255,255,0.82); }
 </style>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  document.getElementById("bottom").scrollIntoView({ behavior: "instant" });
 
-  const input  = document.getElementById("messageInput");
-  const form   = document.getElementById("gameForm");
-  const popup  = document.getElementById("shortcutPopup");
-  const overlay = document.getElementById("shortcutOverlay");
+  /* ── 스토리 맨 아래로 ── */
+  const ss = document.getElementById("storyScroll");
+  ss.scrollTop = ss.scrollHeight;
 
-  // ── 팝업 열기/닫기 ──
-  function openPopup()  { popup.classList.add("show"); overlay.classList.add("show"); }
-  function closePopup() { popup.classList.remove("show"); overlay.classList.remove("show"); }
+  /* ── 오른쪽 패널 (X 버튼으로만 닫힘) ── */
+  const panel  = document.getElementById("gameRight");
+  const panBtn = document.getElementById("rightPanelBtn");
 
-  document.getElementById("shortcutBtn").addEventListener("click", openPopup);
-  document.getElementById("shortcutClose").addEventListener("click", closePopup);
-  overlay.addEventListener("click", closePopup);
+  function openPanel()  { panel.classList.add("show"); panBtn.classList.add("active"); }
+  function closePanel() { panel.classList.remove("show"); panBtn.classList.remove("active"); }
 
-  // ── textarea 높이 자동조절 ──
-  function autoResize() {
-    input.style.height = "auto";
-    input.style.height = input.scrollHeight + "px";
+  panBtn.addEventListener("click", function () {
+    panel.classList.contains("show") ? closePanel() : openPanel();
+  });
+  document.getElementById("rightClose").addEventListener("click", closePanel);
+
+  /* ── 모달 (패널 유지) ── */
+  const overlay = document.getElementById("modalOverlay");
+  let curModal = null, curItem = null;
+
+  function openModal(id, btn) {
+    if (curModal) { curModal.classList.remove("show"); }
+    if (curItem)  { curItem.classList.remove("active"); }
+    curModal = document.getElementById(id);
+    curItem  = btn || null;
+    if (!curModal) return;
+    curModal.classList.add("show");
+    overlay.classList.add("show");
+    if (curItem) curItem.classList.add("active");
   }
+  function closeModal() {
+    if (curModal) curModal.classList.remove("show");
+    if (curItem)  curItem.classList.remove("active");
+    curModal = null; curItem = null;
+    overlay.classList.remove("show");
+  }
+
+  document.querySelectorAll(".right-item[data-popup]").forEach(function (btn) {
+    btn.addEventListener("click", function () { openModal(btn.dataset.popup, btn); });
+  });
+  document.querySelectorAll(".js-mclose").forEach(function (btn) {
+    btn.addEventListener("click", closeModal);
+  });
+  overlay.addEventListener("click", closeModal);
+
+  /* ── 오른쪽 패널 탭 전환 ── */
+  document.querySelectorAll(".rtab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll(".rtab").forEach(function (t) { t.classList.remove("active"); });
+      document.querySelectorAll(".rtab-panel").forEach(function (p) { p.style.display = "none"; });
+      tab.classList.add("active");
+      document.getElementById(tab.dataset.tab).style.display = "block";
+    });
+  });
+
+  /* ── 스타일 옵션 (localStorage 저장/복원) ── */
+  const STYLE_KEY  = "nova_style_{{ profile.id }}";
+  const storyArea  = document.getElementById("storyArea");
+  const fontRange  = document.getElementById("fontSizeRange");
+  const fontVal    = document.getElementById("fontSizeVal");
+
+  function saveStyle(patch) {
+    const cur = JSON.parse(localStorage.getItem(STYLE_KEY) || "{}");
+    localStorage.setItem(STYLE_KEY, JSON.stringify(Object.assign(cur, patch)));
+  }
+  function applyStyle(s) {
+    const fs = s.fontSize || "16";
+    storyArea.style.fontSize = fs + "px";
+    fontVal.textContent      = fs + "px";
+    fontRange.value          = fs;
+
+    const mw = s.maxWidth || "680";
+    storyArea.style.maxWidth = mw + "px";
+    const wr = document.querySelector('input[name="chatWidth"][value="' + mw + '"]');
+    if (wr) wr.checked = true;
+
+    const ta = s.textAlign || "left";
+    storyArea.style.textAlign = ta;
+    const ar = document.querySelector('input[name="chatAlign"][value="' + ta + '"]');
+    if (ar) ar.checked = true;
+  }
+
+  /* 페이지 로드 시 복원 */
+  applyStyle(JSON.parse(localStorage.getItem(STYLE_KEY) || "{}"));
+
+  /* 글자 크기 슬라이더 */
+  fontRange.addEventListener("input", function () {
+    storyArea.style.fontSize = this.value + "px";
+    fontVal.textContent      = this.value + "px";
+    saveStyle({ fontSize: this.value });
+  });
+
+  /* 채팅창 너비 */
+  document.querySelectorAll('input[name="chatWidth"]').forEach(function (r) {
+    r.addEventListener("change", function () {
+      storyArea.style.maxWidth = this.value + "px";
+      saveStyle({ maxWidth: this.value });
+    });
+  });
+
+  /* 텍스트 정렬 */
+  document.querySelectorAll('input[name="chatAlign"]').forEach(function (r) {
+    r.addEventListener("change", function () {
+      storyArea.style.textAlign = this.value;
+      saveStyle({ textAlign: this.value });
+    });
+  });
+
+  /* ── 유저 노트 ── */
+  const noteKey = "nova_note_{{ profile.id }}";
+  const noteTA  = document.getElementById("noteTextarea");
+  noteTA.value  = localStorage.getItem(noteKey) || "";
+  noteTA.addEventListener("input", function () { localStorage.setItem(noteKey, noteTA.value); });
+
+  /* ── Escape ── */
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { closeSugg(); closeModal(); }
+  });
+
+  /* ── 추천 선택지 드롭업 ── */
+  const modeBtn   = document.getElementById("modeBtn");
+  const modeField = document.getElementById("modeField");
+  const suggPopup = document.getElementById("suggPopup");
+  let currentMode = "action";
+  let suggOpen = false;
+
+  function openSugg()  { suggPopup.classList.add("open"); suggOpen = true; }
+  function closeSugg() { suggPopup.classList.remove("open"); suggOpen = false; }
+
+  modeBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    suggOpen ? closeSugg() : openSugg();
+  });
+
+  document.addEventListener("click", function (e) {
+    if (suggOpen && !suggPopup.contains(e.target) && e.target !== modeBtn) closeSugg();
+  });
+
+  /* ── 입력창 ── */
+  const input = document.getElementById("messageInput");
+  const form  = document.getElementById("gameForm");
+
+  function autoResize() { input.style.height = "auto"; input.style.height = input.scrollHeight + "px"; }
   input.addEventListener("input", autoResize);
 
-  // ── 커서 위치에 감싸기 (자동완성용) ──
-  function insertWrap(open, close) {
-    const start    = input.selectionStart;
-    const end      = input.selectionEnd;
-    const val      = input.value;
-    const selected = val.slice(start, end);
-    input.value    = val.slice(0, start) + open + selected + close + val.slice(end);
-    const cursor   = start + open.length + selected.length;
-    input.setSelectionRange(cursor, cursor);
-    input.focus();
-    autoResize();
+  function insertWrap(o, c) {
+    const s = input.selectionStart, e2 = input.selectionEnd, v = input.value, sel = v.slice(s, e2);
+    input.value = v.slice(0, s) + o + sel + c + v.slice(e2);
+    const cur = s + o.length + sel.length;
+    input.setSelectionRange(cur, cur); input.focus(); autoResize();
+  }
+  function appendWrap(o, c) {
+    const v = input.value;
+    input.value = v + (v.length ? "\n" : "") + o + c;
+    const cur = input.value.length - c.length;
+    input.setSelectionRange(cur, cur); input.focus(); autoResize();
   }
 
-  // ── 현재 내용 뒤에 줄바꿈 후 감싸기 (Alt 단축키용) ──
-  function appendWrap(open, close) {
-    const val    = input.value;
-    const prefix = val.length > 0 ? "\n" : "";
-    input.value  = val + prefix + open + close;
-    const cursor = input.value.length - close.length;
-    input.setSelectionRange(cursor, cursor);
-    input.focus();
-    autoResize();
-  }
-
-  // ── 자동완성: " → ""  /  * → ** ──
   input.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
-      e.preventDefault();
-      form.submit();
-      return;
-    }
-
+    if (e.key === "Enter" && !e.shiftKey && !e.altKey) { e.preventDefault(); form.submit(); return; }
     if (e.key === '"' && !e.altKey && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      input.value.length > 0 ? appendWrap('"', '"') : insertWrap('"', '"');
-      return;
+      e.preventDefault(); input.value.length ? appendWrap('"', '"') : insertWrap('"', '"'); return;
     }
-
     if (e.key === "*" && !e.altKey && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      input.value.length > 0 ? appendWrap("*", "*") : insertWrap("*", "*");
-      return;
+      e.preventDefault(); input.value.length ? appendWrap("*", "*") : insertWrap("*", "*"); return;
     }
   });
 
-  // ── 전역 단축키 ──
   document.addEventListener("keydown", function (e) {
     if (!e.altKey) return;
-
     if (e.key === "1") {
       e.preventDefault();
-      const val = input.value;
-      input.value = val + (val.length > 0 ? "\n" : "");
-      const end = input.value.length;
-      input.setSelectionRange(end, end);
-      input.focus();
-      autoResize();
-    } else if (e.key === "2") {
-      e.preventDefault();
-      appendWrap('"', '"');
-    } else if (e.key === "3") {
-      e.preventDefault();
-      appendWrap("*", "*");
-    }
+      const v = input.value;
+      input.value = v + (v.length ? "\n" : "");
+      input.setSelectionRange(input.value.length, input.value.length);
+      input.focus(); autoResize();
+    } else if (e.key === "2") { e.preventDefault(); appendWrap('"', '"');
+    } else if (e.key === "3") { e.preventDefault(); appendWrap("*", "*"); }
   });
 
-  // ── Escape로 팝업 닫기 ──
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closePopup();
-  });
-
-  // ── 추천답변 버튼 ──
+  /* ── 추천 선택지 → 입력창 채우기 ── */
   document.querySelectorAll(".js-suggest").forEach(function (btn) {
     btn.addEventListener("click", function () {
       input.value = btn.dataset.text;
-      input.focus();
+      input.focus(); autoResize(); closeSugg();
     });
   });
+
 });
 </script>
 
