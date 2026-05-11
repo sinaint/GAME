@@ -15,7 +15,18 @@
       "Bash(sqlite3 db.sqlite3 \".tables\")",
       "Bash(python3 \"d:\\\\개인프로젝트\\\\GAME\\\\create_sample_games.py\")",
       "Bash(python -c \"import django; import os; os.environ.setdefault\\('DJANGO_SETTINGS_MODULE','config.settings'\\); django.setup\\(\\); print\\('OK'\\)\")",
-      "Bash(python manage.py check --deploy)"
+      "Bash(python manage.py check --deploy)",
+      "Bash(.venv/Scripts/pip install *)",
+      "Bash(D:/Project/GAME/.venv/Scripts/pip.exe install *)",
+      "Bash(D:/Project/GAME/.venv/Scripts/python.exe -m pip install python-dotenv)",
+      "Bash(D:/Project/GAME/.venv/Scripts/python.exe -m pip install groq)",
+      "Bash(D:/Project/GAME/.venv/Scripts/python.exe manage.py makemigrations profiles)",
+      "Bash(D:/Project/GAME/.venv/Scripts/python.exe manage.py makemigrations profiles --name usersettings)",
+      "Bash(D:/Project/GAME/.venv/Scripts/python.exe manage.py migrate profiles)",
+      "Bash(D:/Project/GAME/.venv/Scripts/python.exe -c ' *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
