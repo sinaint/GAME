@@ -5,12 +5,12 @@ from django.views.decorators.http import require_POST
 
 from gamebuilder.models import Game
 from game.models import GameSession
-from profiles.models import UserPersona
+from profiles.models import UserPersona, UserMemo
 from .models import GameComment
 
 
 def home(request):
-    games = Game.objects.filter(is_published=True).select_related("created_by").order_by("-created_at")
+    games = Game.objects.filter(is_published=True).select_related("created_by__user_settings").order_by("-created_at")
     recent_sessions = []
     personas = []
     if request.user.is_authenticated:
@@ -22,22 +22,29 @@ def home(request):
             .order_by("-updated_at")[:15]
         )
         personas = UserPersona.objects.filter(user=request.user)
+        memos = UserMemo.objects.filter(user=request.user)
+    else:
+        memos = []
     return render(request, "main/home.html", {
         "games": games,
         "recent_sessions": recent_sessions,
         "personas": personas,
+        "memos": memos,
     })
 
 
 def game_detail(request, game_id):
     game = get_object_or_404(Game, pk=game_id, is_published=True)
     comments = game.comments.select_related("user")
-    play_url = f"/profiles/?game_id={game_id}"
+    personas = UserPersona.objects.filter(user=request.user) if request.user.is_authenticated else []
+    memos = UserMemo.objects.filter(user=request.user) if request.user.is_authenticated else []
     return render(request, "main/game_detail.html", {
         "game": game,
         "comments": comments,
-        "play_url": play_url,
         "comment_count": comments.count(),
+        "personas": personas,
+        "memos": memos,
+        "play_url": f"/game/{game_id}/play/",
     })
 
 

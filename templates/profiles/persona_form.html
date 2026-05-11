@@ -3,10 +3,15 @@
 
 {% block content %}
 <style>
-  .form-wrap { max-width: 640px; margin: 0 auto; padding: 40px 24px 80px; }
+  .form-wrap { max-width: 680px; margin: 0 auto; padding: 40px 24px 80px; }
   .form-title { font-size: 1.2rem; font-weight: 900; color: #c8d6ff; margin-bottom: 32px; }
-  .form-label { display: block; font-size: .78rem; color: rgba(255,255,255,0.4); letter-spacing:.05em; margin-bottom: 8px; }
+
+  .form-label {
+    display: block; font-size: .78rem; color: rgba(255,255,255,0.4);
+    letter-spacing: .05em; margin-bottom: 8px;
+  }
   .form-label span { color: #f87171; margin-left: 2px; }
+
   .form-input, .form-textarea {
     width: 100%; background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.1);
@@ -18,7 +23,31 @@
   .form-input:focus, .form-textarea:focus { border-color: #4a7aff; }
   .form-textarea { resize: vertical; line-height: 1.65; }
   .form-hint { font-size: .75rem; color: rgba(255,255,255,0.25); margin-top: 6px; }
-  .form-group { margin-bottom: 22px; }
+  .form-group { margin-bottom: 20px; }
+
+  /* 섹션 구분선 */
+  .section-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 28px 0 20px;
+  }
+  .section-divider span {
+    font-size: .72rem; font-weight: 800; letter-spacing: .1em;
+    color: rgba(255,255,255,0.25); white-space: nowrap;
+  }
+  .section-divider::before, .section-divider::after {
+    content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.07);
+  }
+
+  /* 2열 그리드 */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:520px){ .form-row { grid-template-columns: 1fr; } }
+
+  /* 글자수 카운터 */
+  .char-counter {
+    text-align: right; font-size: .72rem;
+    color: rgba(255,255,255,0.2); margin-top: 4px;
+  }
+
   .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 32px; }
   .btn-cancel {
     padding: 10px 20px; border-radius: 8px;
@@ -28,7 +57,7 @@
   }
   .btn-cancel:hover { background: rgba(255,255,255,0.06); color: #fff; }
   .btn-save {
-    padding: 10px 24px; border-radius: 8px;
+    padding: 10px 28px; border-radius: 8px;
     background: linear-gradient(90deg,#1a3080,#2a50c0);
     border: none; color: #a8c0ff;
     font-size: .88rem; font-weight: 700; cursor: pointer;
@@ -47,19 +76,63 @@
 
   <form method="post">
     {% csrf_token %}
-    <div class="form-group">
-      <label class="form-label">페르소나 제목 <span>*</span></label>
-      <input type="text" name="title" class="form-input" maxlength="100"
-             placeholder="예: 기본 페르소나, 판타지용..."
-             value="{{ obj.title|default:'' }}">
-      <div class="form-hint">채팅방에서 선택할 때 표시되는 제목입니다. (최대 100자)</div>
+
+    <!-- 기본 정보 -->
+    <div class="section-divider"><span>기본 정보</span></div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">이름 <span>*</span></label>
+        <input type="text" name="title" class="form-input" maxlength="100"
+               placeholder="예: 이준호"
+               value="{{ obj.title|default:'' }}">
+        <div class="form-hint">게임 선택 화면에 표시됩니다.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">나이 / 성별</label>
+        <input type="text" name="age" class="form-input" maxlength="30"
+               placeholder="예: 23세 남성"
+               value="{{ obj.age|default:'' }}">
+      </div>
     </div>
+
+    <!-- 캐릭터 설정 -->
+    <div class="section-divider"><span>캐릭터 설정</span></div>
+
     <div class="form-group">
-      <label class="form-label">페르소나 내용</label>
-      <textarea name="content" class="form-textarea" rows="14" maxlength="2000"
-                placeholder="유저 캐릭터에 대한 자유로운 설명을 입력하세요.&#10;&#10;예)&#10;이름: 이준호&#10;나이: 23세 남성&#10;외모: 검은 단발머리, 날카로운 눈매, 키 175cm&#10;성격: 겉은 무뚝뚝하지만 속은 따뜻함&#10;배경: 평범한 대학교 3학년생. 부모님은 지방에 계심.">{{ obj.content|default:'' }}</textarea>
-      <div class="form-hint" id="content-hint">0 / 2000자</div>
+      <label class="form-label">외모</label>
+      <textarea name="appearance" class="form-textarea" rows="3" maxlength="500"
+                id="ta-appearance"
+                placeholder="예: 검은 단발머리, 날카로운 눈매, 키 175cm">{{ obj.appearance|default:'' }}</textarea>
+      <div class="char-counter"><span id="cnt-appearance">0</span> / 500</div>
     </div>
+
+    <div class="form-group">
+      <label class="form-label">성격</label>
+      <textarea name="personality" class="form-textarea" rows="3" maxlength="500"
+                id="ta-personality"
+                placeholder="예: 겉은 무뚝뚝하지만 속은 따뜻함. 정의감이 강하고 쉽게 포기하지 않는다.">{{ obj.personality|default:'' }}</textarea>
+      <div class="char-counter"><span id="cnt-personality">0</span> / 500</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">재능 / 특기</label>
+      <textarea name="talent" class="form-textarea" rows="3" maxlength="500"
+                id="ta-talent"
+                placeholder="예: 검술에 뛰어남. 암기력이 좋고 언변이 탁월하다.">{{ obj.talent|default:'' }}</textarea>
+      <div class="char-counter"><span id="cnt-talent">0</span> / 500</div>
+    </div>
+
+    <!-- 추가 메모 -->
+    <div class="section-divider"><span>추가 메모 (선택)</span></div>
+
+    <div class="form-group">
+      <textarea name="content" class="form-textarea" rows="4" maxlength="1000"
+                id="ta-content"
+                placeholder="배경, 목표, 특이사항 등 AI에게 전달할 추가 정보를 자유롭게 입력하세요.">{{ obj.content|default:'' }}</textarea>
+      <div class="char-counter"><span id="cnt-content">0</span> / 1000</div>
+    </div>
+
     <div class="form-actions">
       <a href="{% url 'profiles:mypage' %}?tab=persona" class="btn-cancel">취소</a>
       <button type="submit" class="btn-save">저장</button>
@@ -68,10 +141,17 @@
 </div>
 
 <script>
-const ta = document.querySelector('textarea[name=content]');
-const hint = document.getElementById('content-hint');
-function updateHint() { hint.textContent = ta.value.length + ' / 2000자'; }
-ta.addEventListener('input', updateHint);
-updateHint();
+[
+  ['ta-appearance',  'cnt-appearance'],
+  ['ta-personality', 'cnt-personality'],
+  ['ta-talent',      'cnt-talent'],
+  ['ta-content',     'cnt-content'],
+].forEach(([taId, cntId]) => {
+  const ta  = document.getElementById(taId);
+  const cnt = document.getElementById(cntId);
+  function update() { cnt.textContent = ta.value.length; }
+  ta.addEventListener('input', update);
+  update();
+});
 </script>
 {% endblock %}

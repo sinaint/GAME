@@ -5,6 +5,7 @@ app_name = "profiles"
 
 urlpatterns = [
     path("mypage/", views.mypage, name="mypage"),
+    path("nickname/update/", views.nickname_update, name="nickname_update"),
     path("memo/create/", views.memo_create, name="memo_create"),
     path("memo/<int:pk>/edit/", views.memo_edit, name="memo_edit"),
     path("memo/<int:pk>/delete/", views.memo_delete, name="memo_delete"),

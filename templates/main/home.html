@@ -216,7 +216,33 @@
           <div style="margin-top:8px; font-weight:800; font-size:.88rem; line-height:1.3;">{{ g.title }}</div>
           <div style="display:flex; align-items:center; justify-content:space-between; margin-top:5px;">
             <span style="opacity:.45; font-size:11px; letter-spacing:.05em;">#{{ g.genre }}</span>
-            <span style="opacity:.28; font-size:11px;">{{ g.created_by.username }}</span>
+            <span style="display:inline-flex; align-items:center; gap:3px; opacity:.6; font-size:11px;">
+              {{ g.created_by.user_settings.nickname|default:g.created_by.username }}
+              <svg width="13" height="13" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 3px rgba(120,100,255,0.8)); flex-shrink:0;">
+                <defs>
+                  <radialGradient id="gc2" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#ffffff"/>
+                    <stop offset="30%" stop-color="#a0c4ff" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="#5b3ff8" stop-opacity="0"/>
+                  </radialGradient>
+                  <radialGradient id="bg2" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#1a1060"/>
+                    <stop offset="100%" stop-color="#0a0620"/>
+                  </radialGradient>
+                  <linearGradient id="hs2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#60aaff"/>
+                    <stop offset="100%" stop-color="#7b3fff"/>
+                  </linearGradient>
+                </defs>
+                <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="url(#bg2)" stroke="url(#hs2)" stroke-width="2"/>
+                <polygon points="50,14 82,32 82,68 50,86 18,68 18,32" fill="none" stroke="#4a6fff" stroke-width="1" opacity="0.6"/>
+                <polygon points="50,18 78,65 22,65" fill="none" stroke="#6a8fff" stroke-width="1.2" opacity="0.7"/>
+                <polygon points="50,82 22,35 78,35" fill="none" stroke="#9a6fff" stroke-width="1.2" opacity="0.7"/>
+                <circle cx="50" cy="50" r="18" fill="none" stroke="#5555cc" stroke-width="0.8" opacity="0.5"/>
+                <circle cx="50" cy="50" r="8" fill="url(#gc2)"/>
+                <circle cx="50" cy="50" r="3" fill="#ffffff" opacity="0.95"/>
+              </svg>
+            </span>
           </div>
         </div>
       </div>
@@ -259,41 +285,58 @@
       </div>
     </div>
 
-    <!-- Step 2: 페르소나 선택 -->
+    <!-- Step 2: 페르소나 + 유저메모 선택 -->
     <div id="step-persona" style="display:none;">
-      <div style="font-weight:800; font-size:1.1rem; margin-bottom:6px; color:#d0dcff;">페르소나 선택</div>
-      <div style="font-size:.82rem; color:rgba(255,255,255,.35); margin-bottom:18px;">이 게임에서 사용할 페르소나를 선택하세요. 선택 후 메모를 수정할 수 있습니다.</div>
+      <div style="font-weight:800; font-size:1.05rem; margin-bottom:14px; color:#d0dcff;">게임 설정</div>
 
-      <div id="persona-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
-        <!-- 페르소나 없이 시작 -->
+      <!-- 페르소나 -->
+      <div style="font-size:.72rem; font-weight:800; letter-spacing:.1em; color:rgba(255,255,255,.35); margin-bottom:8px;">유저 페르소나</div>
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:16px; max-height:160px; overflow-y:auto;">
         <div class="ps-card selected" id="ps-none" onclick="selectPersona(null, this)" data-persona-id="">
-          <div>
-            <div class="ps-card-title">페르소나 없이 시작</div>
-            <div class="ps-card-preview">아이디로 게임을 진행합니다</div>
-          </div>
+          <div class="ps-card-title">선택 안 함</div>
+          <div class="ps-card-preview">아이디로 게임을 진행합니다</div>
         </div>
         {% for p in personas %}
         <div class="ps-card" onclick="selectPersona('{{ p.id }}', this)" data-persona-id="{{ p.id }}">
           <div style="flex:1; min-width:0;">
             <div class="ps-card-title">{{ p.title }}</div>
-            <div class="ps-card-preview">{{ p.content|truncatechars:60 }}</div>
+            <div class="ps-card-preview">{% if p.age %}{{ p.age }} · {% endif %}{{ p.personality|default:p.content|truncatechars:45 }}</div>
           </div>
         </div>
         {% empty %}
-        {% endfor %}
-        {% if not personas %}
-        <div style="padding:16px; text-align:center; font-size:.82rem; color:rgba(255,255,255,.25);">
-          저장된 페르소나가 없습니다.
-          <a href="{% url 'profiles:persona_create' %}" style="color:#4a7aff; text-decoration:none;">만들러 가기 →</a>
+        <div style="padding:10px; text-align:center; font-size:.8rem; color:rgba(255,255,255,.25);">
+          저장된 페르소나가 없습니다. <a href="{% url 'profiles:persona_create' %}" style="color:#4a7aff; text-decoration:none;">만들러 가기 →</a>
         </div>
-        {% endif %}
+        {% endfor %}
       </div>
 
+      <!-- 유저메모 -->
+      <div style="font-size:.72rem; font-weight:800; letter-spacing:.1em; color:rgba(255,255,255,.35); margin-bottom:8px;">유저 메모</div>
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px; max-height:140px; overflow-y:auto;">
+        <div class="ps-card selected" id="memo-none" onclick="selectMemo(null, this)">
+          <div class="ps-card-title">선택 안 함</div>
+        </div>
+        {% for m in memos %}
+        <div class="ps-card" onclick="selectMemo({{ m.id }}, this)"
+             data-memo-content="{{ m.content|escapejs }}">
+          <div style="flex:1; min-width:0;">
+            <div class="ps-card-title">{{ m.title }}</div>
+            <div class="ps-card-preview">{{ m.content|truncatechars:45 }}</div>
+          </div>
+        </div>
+        {% empty %}
+        <div style="padding:10px; text-align:center; font-size:.8rem; color:rgba(255,255,255,.25);">
+          저장된 유저메모가 없습니다. <a href="{% url 'profiles:memo_create' %}" style="color:#4a7aff; text-decoration:none;">만들러 가기 →</a>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- 메모 내용 (편집 가능) -->
       <div style="margin-bottom:16px;">
-        <label style="display:block; font-size:.75rem; color:rgba(255,255,255,.4); margin-bottom:6px; letter-spacing:.05em;">메모 (선택사항)</label>
-        <textarea id="userMemoInput" rows="3" placeholder="이 게임에서만 적용할 추가 설정을 입력하세요."
+        <label style="display:block; font-size:.72rem; font-weight:800; letter-spacing:.1em; color:rgba(255,255,255,.35); margin-bottom:6px;">메모 내용 <span style="font-weight:400; text-transform:none; letter-spacing:0;">(선택한 메모를 불러와 수정 가능 · 원본은 유지됩니다)</span></label>
+        <textarea id="userMemoInput" rows="4" placeholder="메모를 선택하거나 직접 입력하세요."
                   style="width:100%; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:8px;
-                         padding:10px 12px; color:#d0dcff; font-size:.85rem; outline:none; resize:none; box-sizing:border-box; font-family:inherit;"
+                         padding:10px 12px; color:#d0dcff; font-size:.85rem; outline:none; resize:vertical; box-sizing:border-box; font-family:inherit;"
                   onfocus="this.style.borderColor='#4a7aff'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
       </div>
 
@@ -351,23 +394,25 @@
     stepPers.style.display = "block";
     selectedPersonaId = "";
     document.getElementById("userMemoInput").value = "";
+    // 선택 초기화
+    document.querySelectorAll(".ps-card").forEach(c => c.classList.remove("selected"));
+    document.getElementById("ps-none")?.classList.add("selected");
+    document.getElementById("memo-none")?.classList.add("selected");
   };
   window.backToInfo = function() {
     stepPers.style.display = "none";
     stepInfo.style.display = "";
   };
   window.selectPersona = function(id, el) {
-    document.querySelectorAll(".ps-card").forEach(c => c.classList.remove("selected"));
+    el.closest("div[style*='flex-direction:column']").querySelectorAll(".ps-card").forEach(c => c.classList.remove("selected"));
     el.classList.add("selected");
     selectedPersonaId = id || "";
-
-    // 선택한 페르소나 내용을 메모란에 미리 채움 (수정용)
-    if (id) {
-      const preview = el.querySelector(".ps-card-preview")?.textContent || "";
-      document.getElementById("userMemoInput").placeholder = preview;
-    } else {
-      document.getElementById("userMemoInput").placeholder = "이 게임에서만 적용할 추가 설정을 입력하세요.";
-    }
+  };
+  window.selectMemo = function(id, el) {
+    el.closest("div[style*='flex-direction:column']").querySelectorAll(".ps-card").forEach(c => c.classList.remove("selected"));
+    el.classList.add("selected");
+    const content = id ? (el.dataset.memoContent || "") : "";
+    document.getElementById("userMemoInput").value = content;
   };
   window.startGame = function() {
     const memo = document.getElementById("userMemoInput").value.trim();

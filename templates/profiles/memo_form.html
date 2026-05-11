@@ -57,8 +57,9 @@
     </div>
     <div class="form-group">
       <label class="form-label">메모 내용</label>
+      <div style="font-size:.75rem; color:rgba(255,255,255,0.2); margin-bottom:8px;">스킬·무공·특수 능력 등 AI가 게임 중 참고할 정보를 자유롭게 정리하세요.</div>
       <textarea name="content" class="form-textarea" rows="12" maxlength="2000"
-                placeholder="AI 채팅 시 참고할 유저 정보나 설정을 입력하세요.&#10;&#10;예)&#10;이름: 이준호&#10;나이: 23세 남성&#10;외모: 검은 단발머리, 날카로운 눈매, 키 175cm&#10;성격: 겉은 무뚝뚝하지만 속은 따뜻함">{{ obj.content|default:'' }}</textarea>
+                placeholder="게임 내에서 AI가 참고할 스킬, 무공, 능력 등을 정리하세요.&#10;&#10;예) 검술&#10;1식 천뢰참 — 하늘에서 번개를 내리찍듯 위에서 아래로 내려치는 강력한 일격. 위력은 높지만 빈틈이 크다.&#10;2식 잔영류 — 잔상을 남기며 빠르게 이동해 적의 측면을 노리는 기술. 속도가 핵심.&#10;3식 멸혼도 — 기를 검날에 집중시켜 한 점에 폭발시키는 최강의 일격. 체력 소모가 심하다.">{{ obj.content|default:'' }}</textarea>
       <div class="form-hint" id="content-hint">0 / 2000자</div>
     </div>
     <div class="form-actions">

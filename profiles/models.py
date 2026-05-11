@@ -2,6 +2,18 @@ from django.conf import settings
 from django.db import models
 
 
+class UserSettings(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="user_settings",
+    )
+    nickname = models.CharField(max_length=30, blank=True)
+
+    def __str__(self):
+        return f"{self.user} settings"
+
+
 class Profile(models.Model):
     # 각 유저는 최대 3개의 프로필 슬롯을 가짐 (slot = 1~3)
     user = models.ForeignKey(
@@ -67,8 +79,12 @@ class UserPersona(models.Model):
         on_delete=models.CASCADE,
         related_name="user_personas",
     )
-    title = models.CharField(max_length=100)
-    content = models.TextField(max_length=2000, blank=True)
+    title = models.CharField(max_length=100)          # 캐릭터 이름
+    age = models.CharField(max_length=30, blank=True)         # 예: 23세 남성
+    appearance = models.TextField(max_length=500, blank=True) # 외모
+    personality = models.TextField(max_length=500, blank=True)# 성격
+    talent = models.TextField(max_length=500, blank=True)     # 재능/특기
+    content = models.TextField(max_length=1000, blank=True)   # 추가 메모
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

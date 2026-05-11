@@ -92,10 +92,13 @@ def _build_player_info(session):
     persona = session.persona
     user_memo = state.get("user_memo", "")
 
-    if persona and persona.content:
-        info = f"  페르소나: {persona.title}\n"
-        for line in persona.content.strip().splitlines():
-            info += f"  {line}\n"
+    if persona:
+        info = f"  이름: {persona.title}\n"
+        if persona.age:         info += f"  나이: {persona.age}\n"
+        if persona.appearance:  info += f"  외모: {persona.appearance}\n"
+        if persona.personality: info += f"  성격: {persona.personality}\n"
+        if persona.talent:      info += f"  재능: {persona.talent}\n"
+        if persona.content:     info += f"  기타: {persona.content}\n"
     else:
         name = state.get("user_name") or session.user.username
         info = f"  이름: {name}\n"

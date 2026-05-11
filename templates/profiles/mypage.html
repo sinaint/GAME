@@ -32,6 +32,42 @@
   .info-label { width: 120px; color: rgba(255,255,255,0.35); flex-shrink: 0; }
   .info-val { color: rgba(255,255,255,0.8); }
 
+  /* 프로필 헤더 */
+  .profile-header { display: flex; align-items: center; gap: 8px; }
+  .nickname { font-size: 1.2rem; font-weight: 800; color: #d0dcff; }
+  .nickname-edit-btn {
+    background: none; border: none; cursor: pointer;
+    color: rgba(255,255,255,0.2); font-size: .75rem; padding: 2px 6px;
+    border-radius: 4px; transition: color .15s, background .15s;
+  }
+  .nickname-edit-btn:hover { color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.06); }
+  .nickname-form { display: none; align-items: center; gap: 6px; }
+  .nickname-form.active { display: flex; }
+  .nickname-input {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(74,122,255,0.4);
+    border-radius: 6px; color: #d0dcff; font-size: 1rem; font-weight: 700;
+    padding: 4px 10px; width: 180px; outline: none;
+  }
+  .nickname-save {
+    background: rgba(74,122,255,0.2); border: 1px solid rgba(74,122,255,0.4);
+    border-radius: 6px; color: #7aa8ff; font-size: .8rem; font-weight: 700;
+    padding: 4px 12px; cursor: pointer; transition: background .15s;
+  }
+  .nickname-save:hover { background: rgba(74,122,255,0.35); }
+  .nickname-cancel {
+    background: none; border: none; color: rgba(255,255,255,0.3);
+    font-size: .8rem; cursor: pointer; padding: 4px 8px;
+  }
+
+  /* 아키텍트 뱃지 */
+  .badge-architect {
+    display: inline-flex; align-items: center; justify-content: center;
+    vertical-align: middle; cursor: default;
+    filter: drop-shadow(0 0 6px rgba(120,100,255,0.7));
+    transition: filter .2s;
+  }
+  .badge-architect:hover { filter: drop-shadow(0 0 10px rgba(120,180,255,0.9)); }
+
   /* 메모/페르소나 공통 */
   .item-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
   @media(max-width:600px){ .item-grid { grid-template-columns: 1fr; } }
@@ -91,10 +127,90 @@
                   display:flex; align-items:center; justify-content:center;
                   font-size:1.6rem; color:#4a7aff;">◈</div>
       <div>
-        <div style="font-size:1.2rem; font-weight:800; color:#d0dcff;">{{ request.user.username }}</div>
-        <div style="font-size:.8rem; color:rgba(255,255,255,0.3); margin-top:3px;">NOVA 플레이어</div>
+        <!-- 닉네임 표시 -->
+        <div class="profile-header" id="nickname-display">
+          <span class="nickname">{{ user_settings.nickname|default:request.user.username }}</span>
+          {% if is_creator %}
+          <span class="badge-architect" title="NOVA Prime">
+            <svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <radialGradient id="glow-center" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%"   stop-color="#ffffff" stop-opacity="1"/>
+                  <stop offset="30%"  stop-color="#a0c4ff" stop-opacity="0.9"/>
+                  <stop offset="100%" stop-color="#5b3ff8" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="bg-grad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%"   stop-color="#1a1060"/>
+                  <stop offset="100%" stop-color="#0a0620"/>
+                </radialGradient>
+                <filter id="blur-glow">
+                  <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <!-- 외곽 육각형 -->
+              <polygon points="50,4 90,27 90,73 50,96 10,73 10,27"
+                fill="url(#bg-grad)" stroke="url(#hex-stroke)" stroke-width="2"/>
+              <defs>
+                <linearGradient id="hex-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#60aaff"/>
+                  <stop offset="100%" stop-color="#7b3fff"/>
+                </linearGradient>
+              </defs>
+              <!-- 내부 육각형 -->
+              <polygon points="50,14 82,32 82,68 50,86 18,68 18,32"
+                fill="none" stroke="#4a6fff" stroke-width="1" opacity="0.6"/>
+              <!-- 별(다윗의 별) 삼각형 1 -->
+              <polygon points="50,18 78,65 22,65"
+                fill="none" stroke="#6a8fff" stroke-width="1.2" opacity="0.7" filter="url(#blur-glow)"/>
+              <!-- 별(다윗의 별) 삼각형 2 (뒤집기) -->
+              <polygon points="50,82 22,35 78,35"
+                fill="none" stroke="#9a6fff" stroke-width="1.2" opacity="0.7" filter="url(#blur-glow)"/>
+              <!-- 대각선 연결선 -->
+              <line x1="50" y1="18" x2="50" y2="82" stroke="#5a7fff" stroke-width="0.8" opacity="0.4"/>
+              <line x1="22" y1="35" x2="78" y2="65" stroke="#5a7fff" stroke-width="0.8" opacity="0.4"/>
+              <line x1="78" y1="35" x2="22" y2="65" stroke="#5a7fff" stroke-width="0.8" opacity="0.4"/>
+              <!-- 동심원 -->
+              <circle cx="50" cy="50" r="18" fill="none" stroke="#5555cc" stroke-width="0.8" opacity="0.5"/>
+              <circle cx="50" cy="50" r="12" fill="none" stroke="#5555cc" stroke-width="0.8" opacity="0.4"/>
+              <circle cx="50" cy="50" r="6"  fill="none" stroke="#8888ff" stroke-width="0.8" opacity="0.5"/>
+              <!-- 꼭짓점 점들 -->
+              <circle cx="50" cy="4"  r="2" fill="#80aaff" opacity="0.8"/>
+              <circle cx="90" cy="27" r="2" fill="#80aaff" opacity="0.8"/>
+              <circle cx="90" cy="73" r="2" fill="#80aaff" opacity="0.8"/>
+              <circle cx="50" cy="96" r="2" fill="#80aaff" opacity="0.8"/>
+              <circle cx="10" cy="73" r="2" fill="#80aaff" opacity="0.8"/>
+              <circle cx="10" cy="27" r="2" fill="#80aaff" opacity="0.8"/>
+              <!-- 중앙 발광 orb -->
+              <circle cx="50" cy="50" r="8" fill="url(#glow-center)"/>
+              <circle cx="50" cy="50" r="3" fill="#ffffff" opacity="0.95"/>
+            </svg>
+          </span>
+          {% endif %}
+          <button class="nickname-edit-btn" onclick="toggleNicknameEdit(true)">✎ 수정</button>
+        </div>
+        <!-- 닉네임 편집 폼 -->
+        <form method="post" action="{% url 'profiles:nickname_update' %}" class="nickname-form" id="nickname-form">
+          {% csrf_token %}
+          <input class="nickname-input" type="text" name="nickname"
+                 value="{{ user_settings.nickname|default:request.user.username }}"
+                 maxlength="30" placeholder="닉네임 입력">
+          <button type="submit" class="nickname-save">저장</button>
+          <button type="button" class="nickname-cancel" onclick="toggleNicknameEdit(false)">취소</button>
+        </form>
+        <div style="font-size:.8rem; color:rgba(255,255,255,0.3); margin-top:3px;">
+          {% if is_creator %}NOVA Prime{% else %}NOVA 플레이어{% endif %}
+        </div>
       </div>
     </div>
+
+    <script>
+    function toggleNicknameEdit(show) {
+      document.getElementById('nickname-display').style.display = show ? 'none' : 'flex';
+      document.getElementById('nickname-form').classList.toggle('active', show);
+      if (show) document.querySelector('.nickname-input').focus();
+    }
+    </script>
     <div class="info-row"><span class="info-label">가입일</span><span class="info-val">{{ request.user.date_joined|date:"Y.m.d" }}</span></div>
     <div class="info-row"><span class="info-label">이메일</span><span class="info-val">{{ request.user.email|default:"—" }}</span></div>
     <div class="info-row"><span class="info-label">유저메모</span><span class="info-val">{{ memos.count }}개</span></div>
