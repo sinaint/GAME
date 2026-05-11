@@ -7,7 +7,7 @@
   <a href="/" class="nav-logo">NOVA</a>
   <div class="nav-center">
     <span class="nav-game-title">{{ game_title }}</span>
-    <span class="nav-profile">{{ profile.name }}</span>
+    <span class="nav-profile">{% if session.persona %}{{ session.persona.title }}{% else %}{{ request.user.username }}{% endif %}</span>
   </div>
   <button type="button" class="nav-menu-btn" id="rightPanelBtn" title="설정">···</button>
 </nav>
@@ -24,7 +24,7 @@
   <div class="session-list">
     <div class="sess-item active">
       <div class="sess-name">{{ game_title }}</div>
-      <div class="sess-meta">턴 {{ session.turn }} · {{ profile.name }}</div>
+      <div class="sess-meta">턴 {{ session.turn }} · {% if session.persona %}{{ session.persona.title }}{% else %}{{ request.user.username }}{% endif %}</div>
     </div>
   </div>
 </aside>
@@ -69,7 +69,7 @@
   <div class="input-bar">
 
     {# 입력 폼 #}
-    <form method="post" action="{% url 'game:turn' profile.id %}" id="gameForm">
+    <form method="post" action="{% url 'game:turn' game.id %}" id="gameForm">
       {% csrf_token %}
       <div class="input-row">
         <div class="mode-btn-wrap">
@@ -185,12 +185,19 @@
 <div class="modal-popup" id="profilePopup">
   <div class="mp-head"><span class="mp-title">👤 대화 프로필</span><button class="mp-close js-mclose">✕</button></div>
   <div class="prof-info">
-    <div class="pi-row"><span class="pi-lbl">이름</span><span class="pi-val">{{ profile.name }}</span></div>
-    <div class="pi-row"><span class="pi-lbl">성별</span><span class="pi-val">{{ profile.gender }}</span></div>
-    <div class="pi-row"><span class="pi-lbl">나이</span><span class="pi-val">{{ profile.age }}세</span></div>
-    {% if profile.face_text %}<div class="pi-row"><span class="pi-lbl">외모</span><span class="pi-val">{{ profile.face_text }}</span></div>{% endif %}
-    {% if profile.body_text %}<div class="pi-row"><span class="pi-lbl">체형</span><span class="pi-val">{{ profile.body_text }}</span></div>{% endif %}
-    {% if profile.vibe_text %}<div class="pi-row"><span class="pi-lbl">분위기</span><span class="pi-val">{{ profile.vibe_text }}</span></div>{% endif %}
+    {% if session.persona %}
+      <div class="pi-row"><span class="pi-lbl">페르소나</span><span class="pi-val" style="font-weight:700;">{{ session.persona.title }}</span></div>
+      {% for line in session.persona.content.splitlines %}
+        {% if line %}
+          <div class="pi-row"><span class="pi-val" style="width:100%; color:rgba(255,255,255,0.7);">{{ line }}</span></div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <div class="pi-row"><span class="pi-lbl">유저</span><span class="pi-val">{{ request.user.username }}</span></div>
+      {% if session.state_json.user_memo %}
+        <div class="pi-row"><span class="pi-lbl">메모</span><span class="pi-val" style="white-space:pre-wrap;">{{ session.state_json.user_memo }}</span></div>
+      {% endif %}
+    {% endif %}
   </div>
 </div>
 
@@ -628,7 +635,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   /* ── 스타일 옵션 (localStorage 저장/복원) ── */
-  const STYLE_KEY  = "nova_style_{{ profile.id }}";
+  const STYLE_KEY  = "nova_style_{{ session.id }}";
   const storyArea  = document.getElementById("storyArea");
   const fontRange  = document.getElementById("fontSizeRange");
   const fontVal    = document.getElementById("fontSizeVal");
@@ -681,7 +688,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   /* ── 유저 노트 ── */
-  const noteKey = "nova_note_{{ profile.id }}";
+  const noteKey = "nova_note_{{ session.id }}";
   const noteTA  = document.getElementById("noteTextarea");
   noteTA.value  = localStorage.getItem(noteKey) || "";
   noteTA.addEventListener("input", function () { localStorage.setItem(noteKey, noteTA.value); });

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{% if obj %}유저메모 수정{% else %}유저메모 만들기{% endif %} — NOVA{% endblock %}
+
+{% block content %}
+<style>
+  .form-wrap { max-width: 640px; margin: 0 auto; padding: 40px 24px 80px; }
+  .form-title { font-size: 1.2rem; font-weight: 900; color: #c8d6ff; margin-bottom: 32px; }
+  .form-label { display: block; font-size: .78rem; color: rgba(255,255,255,0.4); letter-spacing:.05em; margin-bottom: 8px; }
+  .form-label span { color: #f87171; margin-left: 2px; }
+  .form-input, .form-textarea {
+    width: 100%; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 11px 14px;
+    color: #d0dcff; font-size: .9rem; outline: none;
+    box-sizing: border-box; font-family: inherit;
+    transition: border-color .15s;
+  }
+  .form-input:focus, .form-textarea:focus { border-color: #4a7aff; }
+  .form-textarea { resize: vertical; line-height: 1.65; }
+  .form-hint { font-size: .75rem; color: rgba(255,255,255,0.25); margin-top: 6px; }
+  .form-group { margin-bottom: 22px; }
+  .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 32px; }
+  .btn-cancel {
+    padding: 10px 20px; border-radius: 8px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.5); font-size: .88rem; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+  }
+  .btn-cancel:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .btn-save {
+    padding: 10px 24px; border-radius: 8px;
+    background: linear-gradient(90deg,#1a3080,#2a50c0);
+    border: none; color: #a8c0ff;
+    font-size: .88rem; font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-save:hover { background: linear-gradient(90deg,#2040a0,#3a60e0); }
+</style>
+
+<div class="form-wrap">
+  <div style="margin-bottom:24px;">
+    <a href="{% url 'profiles:mypage' %}?tab=memo"
+       style="color:rgba(255,255,255,0.35); font-size:.85rem; text-decoration:none;">
+      ← 목록으로
+    </a>
+  </div>
+  <div class="form-title">{% if obj %}유저메모 수정{% else %}유저메모 만들기{% endif %}</div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      <label class="form-label">메모 제목 <span>*</span></label>
+      <input type="text" name="title" class="form-input" maxlength="200"
+             placeholder="메모 제목을 입력하세요"
+             value="{{ obj.title|default:'' }}">
+      <div class="form-hint">최대 200자</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">메모 내용</label>
+      <textarea name="content" class="form-textarea" rows="12" maxlength="2000"
+                placeholder="AI 채팅 시 참고할 유저 정보나 설정을 입력하세요.&#10;&#10;예)&#10;이름: 이준호&#10;나이: 23세 남성&#10;외모: 검은 단발머리, 날카로운 눈매, 키 175cm&#10;성격: 겉은 무뚝뚝하지만 속은 따뜻함">{{ obj.content|default:'' }}</textarea>
+      <div class="form-hint" id="content-hint">0 / 2000자</div>
+    </div>
+    <div class="form-actions">
+      <a href="{% url 'profiles:mypage' %}?tab=memo" class="btn-cancel">취소</a>
+      <button type="submit" class="btn-save">저장</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const ta = document.querySelector('textarea[name=content]');
+const hint = document.getElementById('content-hint');
+function updateHint() { hint.textContent = ta.value.length + ' / 2000자'; }
+ta.addEventListener('input', updateHint);
+updateHint();
+</script>
+{% endblock %}

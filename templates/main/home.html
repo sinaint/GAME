@@ -1,363 +1,419 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Home{% endblock %}
+{% block title %}NOVA{% endblock %}
 
-{% block topbar %}{% endblock %}
+{% block topbar %}
+<!-- 상단 바 -->
+<div style="padding:12px 24px; display:flex; align-items:center; justify-content:space-between;
+            border-bottom:1px solid rgba(255,255,255,0.06); background:#0c0e14; flex-shrink:0;">
+  <div style="display:flex; align-items:center; gap:20px;">
+    <a href="/" style="font-weight:900; font-size:24px; color:#fff; text-decoration:none; letter-spacing:-.5px;">NOVA</a>
+    <div style="display:flex; gap:16px;">
+      <a href="#sidebar" style="font-size:.88rem; color:rgba(255,255,255,0.55); text-decoration:none;"
+         onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">월드</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'profiles:mypage' %}" style="font-size:.88rem; color:rgba(255,255,255,0.55); text-decoration:none;"
+           onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">마이페이지</a>
+      {% endif %}
+    </div>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <input id="searchInput" placeholder="제목 또는 장르 검색"
+           style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+                  border-radius:10px; padding:8px 14px; color:#fff; font-size:.85rem;
+                  outline:none; min-width:260px;"
+           autocomplete="off"
+           onfocus="this.style.borderColor='rgba(255,255,255,0.28)'"
+           onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+    <div style="position:relative;">
+      {% if user.is_authenticated %}
+        <button id="userBtn" style="display:inline-flex; align-items:center; gap:7px; padding:6px 14px 6px 8px;
+                border-radius:999px; border:1px solid rgba(34,197,94,0.35); background:rgba(34,197,94,0.08);
+                cursor:pointer; transition:background .15s;"
+                onmouseover="this.style.background='rgba(34,197,94,0.15)'"
+                onmouseout="this.style.background='rgba(34,197,94,0.08)'">
+          <span style="width:10px;height:10px;border-radius:999px;background:#22c55e;
+                       box-shadow:0 0 6px rgba(34,197,94,0.8);flex-shrink:0;"></span>
+          <span style="font-size:.75rem;font-weight:800;color:#4ade80;letter-spacing:.06em;">무료</span>
+        </button>
+      {% else %}
+        <a href="{% url 'login' %}" style="display:inline-flex; align-items:center; gap:7px; padding:6px 14px;
+                border-radius:999px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.06);
+                color:rgba(255,255,255,0.6); font-size:.8rem; font-weight:700; text-decoration:none;">로그인</a>
+      {% endif %}
+      <div id="userMenu" style="display:none; position:absolute; right:0; top:44px; width:200px;
+                                border-radius:14px; border:1px solid rgba(255,255,255,0.12);
+                                background:rgba(18,22,30,0.98); box-shadow:0 10px 30px rgba(0,0,0,.35);
+                                padding:8px; z-index:20;">
+        {% if user.is_authenticated %}
+          <div style="padding:8px 10px 6px; font-size:.78rem; color:rgba(255,255,255,0.4);">{{ user.username }}</div>
+          <div style="height:1px; background:rgba(255,255,255,0.1); margin:6px 0;"></div>
+          <a href="{% url 'profiles:mypage' %}" style="display:block; padding:9px 10px; border-radius:9px; color:rgba(255,255,255,0.9); text-decoration:none; font-size:.88rem;"
+             onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">마이페이지</a>
+          <a href="{% url 'gamebuilder:dashboard' %}" style="display:block; padding:9px 10px; border-radius:9px; color:rgba(255,255,255,0.9); text-decoration:none; font-size:.88rem;"
+             onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">제작자 대시보드</a>
+          <div style="height:1px; background:rgba(255,255,255,0.1); margin:6px 0;"></div>
+          <form method="post" action="{% url 'logout' %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" style="display:block; width:100%; padding:9px 10px; border-radius:9px;
+                    background:none; border:none; text-align:left; cursor:pointer; font-size:.88rem;
+                    color:rgba(255,100,100,0.8);">로그아웃</button>
+          </form>
+        {% else %}
+          <a href="{% url 'login' %}" style="display:block; padding:9px 10px; border-radius:9px; color:rgba(255,255,255,0.9); text-decoration:none; font-size:.88rem;">로그인</a>
+          <a href="{% url 'accounts:signup' %}" style="display:block; padding:9px 10px; border-radius:9px; color:rgba(255,255,255,0.9); text-decoration:none; font-size:.88rem;">회원가입</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block wrap_class %}{% endblock %}
 
 {% block content %}
 <style>
-  /* ── 검색 입력 ── */
-  .dark-input {
-    color: #fff !important;
-    background: rgba(255,255,255,0.06) !important;
-    border: 1px solid rgba(255,255,255,0.12) !important;
-    border-radius: 10px !important;
-  }
-  .dark-input::placeholder { color: rgba(255,255,255,0.38) !important; }
-  .dark-input:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    border-color: rgba(255,255,255,0.28) !important;
-  }
-
-  /* ── 칩 ── */
-  .chip {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    cursor: pointer;
-    transition: background .15s, border-color .15s, color .15s;
-    user-select: none;
-    color: rgba(255,255,255,0.7);
-  }
-  .chip:hover { background: rgba(255,255,255,0.10); }
-  .chip.active {
-    background: #fff;
-    border-color: #fff;
-    color: #000;
-  }
-
-  /* ── 게임 카드 ── */
-  .game-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    transition: transform .14s ease, border-color .14s ease;
-  }
-  .game-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255,255,255,0.20);
-  }
-
-  /* ── 썸네일 박스 ── */
-  .thumb-box {
-    aspect-ratio: 1 / 1;
-    position: relative;
-    overflow: hidden;
-    border-radius: inherit;
-  }
-  .thumb-box img {
-    position: relative;
-    z-index: 1;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .thumb-fallback {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-size: 11px;
-    letter-spacing: .1em;
-    font-weight: 600;
-    text-transform: uppercase;
-    background: rgba(255,255,255,0.05);
-    color: rgba(255,255,255,0.35);
-  }
-  .thumb-fallback .fb-icon { font-size: 1.6rem; opacity: .5; }
-
-  /* 장르별 폴백 색상 */
-  .thumb-box[data-tag="무협"]   .thumb-fallback { background: linear-gradient(135deg,#1e0606,#4a1010); color:#ff9090; }
-  .thumb-box[data-tag="SF"]     .thumb-fallback { background: linear-gradient(135deg,#060a1e,#10184a); color:#8090ff; }
-  .thumb-box[data-tag="로맨스"] .thumb-fallback { background: linear-gradient(135deg,#1e0614,#4a1038); color:#ff80b8; }
-  .thumb-box[data-tag="판타지"] .thumb-fallback { background: linear-gradient(135deg,#100630,#22106a); color:#c090ff; }
-  .thumb-box[data-tag="아포칼립스"] .thumb-fallback { background: linear-gradient(135deg,#120e04,#2e2008); color:#e0b060; }
-  .thumb-box[data-tag="현대"]   .thumb-fallback { background: linear-gradient(135deg,#060e08,#0e2014); color:#80c090; }
-
-  /* ── 햄버거 ── */
-  .hamburger-btn {
-    width: 40px; height: 40px;
-    border-radius: 12px;
-    display: inline-flex; align-items: center; justify-content: center;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.06);
-    cursor: pointer;
-  }
-  .hamburger-btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.2); }
-  .hamburger-lines { width: 18px; height: 12px; position: relative; }
-  .hamburger-lines span {
-    position: absolute; left: 0; right: 0;
-    height: 2px; background: rgba(255,255,255,0.85); border-radius: 99px;
-  }
-  .hamburger-lines span:nth-child(1) { top: 0; }
-  .hamburger-lines span:nth-child(2) { top: 5px; opacity: .85; }
-  .hamburger-lines span:nth-child(3) { bottom: 0; opacity: .7; }
-
-  /* ── 드로어 ── */
-  .drawer-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.45);
-    backdrop-filter: blur(2px);
-    display: none; z-index: 50;
-  }
-  .drawer-overlay.show { display: block; }
-  .drawer {
-    position: fixed; top: 0; left: 0;
-    height: 100vh; width: 300px;
-    background: rgba(18,22,30,0.98);
-    border-right: 1px solid rgba(255,255,255,0.10);
-    box-shadow: 20px 0 40px rgba(0,0,0,0.4);
-    transform: translateX(-100%);
-    transition: transform .18s ease;
-    z-index: 60; padding: 16px;
-  }
-  .drawer.show { transform: translateX(0); }
-  .drawer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .drawer-title { font-weight: 900; font-size: 18px; letter-spacing: -.5px; }
-  .drawer-close {
-    width: 36px; height: 36px; border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.85); cursor: pointer;
-  }
-  .drawer-close:hover { background: rgba(255,255,255,0.09); }
-  .drawer-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.10); }
-  .drawer-link {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px; border-radius: 12px;
-    color: rgba(255,255,255,0.9); text-decoration: none;
-  }
-  .drawer-link:hover { background: rgba(255,255,255,0.08); color: #fff; }
-  .drawer-muted { font-size: 12px; opacity: .65; margin-top: 6px; margin-bottom: 2px; }
-
-  /* ── 유저 메뉴 ── */
-  .user-wrap { position: relative; }
-  .user-btn {
-    width: 36px; height: 36px; border-radius: 999px;
-    display: inline-flex; align-items: center; justify-content: center;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.06); cursor: pointer;
-  }
-  .user-btn:hover { border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.09); }
-  .user-dot {
-    width: 18px; height: 18px; border-radius: 999px;
-    background: #22c55e; border: 1px solid rgba(255,255,255,0.18);
-    display: inline-block;
-  }
-  .user-menu {
-    position: absolute; right: 0; top: 44px;
-    width: 200px; border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(18,22,30,0.98);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-    padding: 8px; display: none; z-index: 20;
-  }
-  .user-menu.show { display: block; }
-  .user-item {
-    display: block; padding: 10px;
-    border-radius: 10px;
-    color: rgba(255,255,255,0.9); text-decoration: none;
-  }
-  .user-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
-  .user-sep { height: 1px; background: rgba(255,255,255,0.10); margin: 6px 0; }
-
-  /* ── 검색 무결과 ── */
-  #no-results {
-    display: none;
-    color: rgba(255,255,255,0.3);
-    font-size: .88rem;
-    padding: 32px 0;
-    text-align: center;
-    width: 100%;
-  }
+  /* 카드 */
+  .game-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); transition:transform .14s, border-color .14s; }
+  .game-card:hover { transform:translateY(-3px); border-color:rgba(255,255,255,0.20); }
+  .thumb-box { aspect-ratio:2/3; position:relative; overflow:hidden; border-radius:inherit; }
+  .thumb-box img { position:relative; z-index:1; width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb-fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; font-size:11px; letter-spacing:.1em; font-weight:600; text-transform:uppercase; color:rgba(255,255,255,0.35); }
+  .thumb-fallback .fb-icon { font-size:1.6rem; opacity:.5; }
+  .thumb-box[data-tag="무협"]      .thumb-fallback { background:linear-gradient(135deg,#1e0606,#4a1010); color:#ff9090; }
+  .thumb-box[data-tag="SF"]        .thumb-fallback { background:linear-gradient(135deg,#060a1e,#10184a); color:#8090ff; }
+  .thumb-box[data-tag="로맨스"]    .thumb-fallback { background:linear-gradient(135deg,#1e0614,#4a1038); color:#ff80b8; }
+  .thumb-box[data-tag="판타지"]    .thumb-fallback { background:linear-gradient(135deg,#100630,#22106a); color:#c090ff; }
+  .thumb-box[data-tag="아포칼립스"].thumb-fallback { background:linear-gradient(135deg,#120e04,#2e2008); color:#e0b060; }
+  .thumb-box[data-tag="현대"]      .thumb-fallback { background:linear-gradient(135deg,#060e08,#0e2014); color:#80c090; }
+  /* 칩 */
+  .chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); cursor:pointer; transition:background .15s, color .15s; user-select:none; color:rgba(255,255,255,0.7); }
+  .chip:hover { background:rgba(255,255,255,0.10); }
+  .chip.active { background:#fff; border-color:#fff; color:#000; }
+  /* 게임 모달 */
+  .gm-overlay { position:fixed; inset:0; background:rgba(0,0,0,.72); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:200; opacity:0; pointer-events:none; transition:opacity .18s; }
+  .gm-overlay.show { opacity:1; pointer-events:all; }
+  .gm-panel { background:rgba(18,22,30,.98); border:1px solid rgba(255,255,255,.10); border-radius:20px; box-shadow:0 24px 60px rgba(0,0,0,.6); width:min(700px,92vw); max-height:90vh; overflow-y:auto; padding:28px; position:relative; transform:translateY(12px); transition:transform .18s; }
+  .gm-overlay.show .gm-panel { transform:translateY(0); }
+  .gm-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:999px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.07); color:rgba(255,255,255,.8); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .gm-close:hover { background:rgba(255,255,255,.13); }
+  .gm-body { display:flex; gap:24px; }
+  .gm-thumb-wrap { flex-shrink:0; width:160px; aspect-ratio:2/3; border-radius:12px; overflow:hidden; position:relative; }
+  .gm-thumb-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+  .gm-fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; font-size:12px; font-weight:700; letter-spacing:.08em; }
+  .gm-fallback .gm-icon { font-size:2rem; opacity:.5; }
+  .gm-fallback[data-tag="무협"]      { background:linear-gradient(135deg,#1e0606,#4a1010); color:#ff9090; }
+  .gm-fallback[data-tag="SF"]        { background:linear-gradient(135deg,#060a1e,#10184a); color:#8090ff; }
+  .gm-fallback[data-tag="로맨스"]    { background:linear-gradient(135deg,#1e0614,#4a1038); color:#ff80b8; }
+  .gm-fallback[data-tag="판타지"]    { background:linear-gradient(135deg,#100630,#22106a); color:#c090ff; }
+  .gm-fallback[data-tag="아포칼립스"]{ background:linear-gradient(135deg,#120e04,#2e2008); color:#e0b060; }
+  .gm-fallback[data-tag="현대"]      { background:linear-gradient(135deg,#060e08,#0e2014); color:#80c090; }
+  .gm-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
+  .gm-tag-chip { display:inline-block; padding:3px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.18); font-size:11px; font-weight:700; letter-spacing:.08em; color:rgba(255,255,255,.7); width:fit-content; }
+  .gm-title { font-size:1.4rem; font-weight:900; line-height:1.2; }
+  .gm-desc { font-size:.9rem; opacity:.7; line-height:1.6; }
+  .gm-divider { height:1px; background:rgba(255,255,255,.08); }
+  .gm-lore-label { font-size:11px; font-weight:700; letter-spacing:.1em; opacity:.45; text-transform:uppercase; }
+  .gm-lore { font-size:.88rem; opacity:.75; line-height:1.75; }
+  .gm-actions { display:flex; gap:10px; margin-top:auto; padding-top:8px; }
+  .gm-btn-detail { flex:1; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.18); background:transparent; color:rgba(255,255,255,.85); font-size:.92rem; font-weight:700; cursor:pointer; text-align:center; text-decoration:none; transition:background .12s; }
+  .gm-btn-detail:hover { background:rgba(255,255,255,.07); color:#fff; }
+  .gm-btn-play { flex:2; padding:12px; border-radius:12px; border:none; background:#fff; color:#000; font-size:.92rem; font-weight:800; cursor:pointer; text-align:center; text-decoration:none; transition:background .12s; }
+  .gm-btn-play:hover { background:#e8e8e8; color:#000; }
+  /* 페르소나 선택 패널 */
+  .persona-step { display:none; flex-direction:column; gap:12px; }
+  .persona-step.active { display:flex; }
+  .ps-card { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); cursor:pointer; transition:border-color .12s, background .12s; }
+  .ps-card:hover, .ps-card.selected { border-color:#4a7aff; background:rgba(74,122,255,.08); }
+  .ps-card-title { font-weight:700; font-size:.9rem; color:#d0dcff; }
+  .ps-card-preview { font-size:.75rem; color:rgba(255,255,255,.35); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
+  /* 사이드바 */
+  .home-sidebar { width:240px; flex-shrink:0; border-right:1px solid rgba(255,255,255,.07); display:flex; flex-direction:column; overflow:hidden; }
+  .sb-header { padding:16px 14px 10px; font-size:.72rem; font-weight:800; letter-spacing:.1em; color:rgba(255,255,255,.3); border-bottom:1px solid rgba(255,255,255,.06); flex-shrink:0; }
+  .sb-list { overflow-y:auto; flex:1; padding:6px 0; }
+  .sb-list::-webkit-scrollbar { width:3px; }
+  .sb-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:4px; }
+  .sb-item { display:flex; align-items:center; gap:10px; padding:9px 12px; text-decoration:none; transition:background .12s; }
+  .sb-item:hover { background:rgba(255,255,255,.05); }
+  .sb-thumb { width:34px; height:50px; border-radius:5px; flex-shrink:0; overflow:hidden; background:rgba(255,255,255,.06); display:flex; align-items:center; justify-content:center; font-size:9px; color:rgba(255,255,255,.3); }
+  .sb-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .sb-info { flex:1; min-width:0; }
+  .sb-title { font-size:.8rem; font-weight:700; color:rgba(255,255,255,.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sb-date { font-size:.68rem; color:rgba(255,255,255,.25); margin-top:2px; }
+  .sb-empty { padding:28px 14px; text-align:center; font-size:.8rem; color:rgba(255,255,255,.2); }
+  /* 메인 */
+  .home-main { flex:1; overflow-y:auto; padding:24px 32px; }
+  .home-main::-webkit-scrollbar { width:4px; }
+  .home-main::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:4px; }
+  #no-results { display:none; color:rgba(255,255,255,.3); font-size:.88rem; padding:32px 0; text-align:center; grid-column:1/-1; }
 </style>
 
-<div class="container py-4">
+<!-- 바디 레이아웃 -->
+<div style="display:flex; height:calc(100vh - 53px); overflow:hidden;">
 
-  <!-- ── 상단 바 ── -->
-  <div class="d-flex align-items-center justify-content-between mb-4">
+  <!-- ── 사이드바: 플레이 기록 ── -->
+  <aside class="home-sidebar" id="sidebar">
+    <div class="sb-header">최근 플레이</div>
+    <div class="sb-list">
+      {% if user.is_authenticated %}
+        {% if recent_sessions %}
+          {% for s in recent_sessions %}
+          <a class="sb-item" href="{% url 'game:view' s.game.id %}">
+            <div class="sb-thumb">
+              {% if s.game.thumb_url %}
+                <img src="{{ s.game.thumb_url }}" alt="{{ s.game.title }}" onerror="this.style.display='none'">
+              {% else %}◈{% endif %}
+            </div>
+            <div class="sb-info">
+              <div class="sb-title">{{ s.game.title }}</div>
+              <div class="sb-date">{{ s.updated_at|date:"m.d H:i" }} · T-{{ s.turn }}</div>
+            </div>
+          </a>
+          {% endfor %}
+        {% else %}
+          <div class="sb-empty">플레이 기록이 없습니다</div>
+        {% endif %}
+      {% else %}
+        <div class="sb-empty">로그인 후<br>기록이 표시됩니다</div>
+      {% endif %}
+    </div>
+  </aside>
 
-    <div class="d-flex align-items-center gap-3">
-      <button type="button" class="hamburger-btn" id="drawerOpenBtn" aria-label="menu">
-        <div class="hamburger-lines"><span></span><span></span><span></span></div>
-      </button>
-      <a href="/" style="font-weight:900;font-size:28px;color:#fff;text-decoration:none;">NOVA</a>
-      <div class="d-flex gap-3" style="opacity:.9;">
-        <a href="#" class="text-decoration-none text-light">월드</a>
-        <a href="#" class="text-decoration-none text-light">마이 로그</a>
-      </div>
+  <!-- ── 메인 콘텐츠 ── -->
+  <div class="home-main">
+
+    <!-- 장르 칩 -->
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;" id="chip-bar">
+      <span class="px-3 py-1 rounded-pill chip active" data-filter="all">추천</span>
+      <span class="px-3 py-1 rounded-pill chip" data-filter="무협">무협</span>
+      <span class="px-3 py-1 rounded-pill chip" data-filter="로맨스">로맨스</span>
+      <span class="px-3 py-1 rounded-pill chip" data-filter="SF">SF</span>
+      <span class="px-3 py-1 rounded-pill chip" data-filter="판타지">판타지</span>
+      <span class="px-3 py-1 rounded-pill chip" data-filter="아포칼립스">아포칼립스</span>
+      <span class="px-3 py-1 rounded-pill chip" data-filter="현대">현대</span>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <!-- 검색창: form 제거, input만 -->
-      <input
-        id="searchInput"
-        class="form-control dark-input"
-        style="min-width:280px;"
-        placeholder="제목 또는 장르 검색"
-        autocomplete="off"
-      >
-      <div class="user-wrap">
-        <button type="button" class="user-btn" id="userBtn" aria-label="user">
-          <span class="user-dot"></span>
-        </button>
-        <div class="user-menu" id="userMenu">
+    <div style="font-weight:800; font-size:1.2rem; margin-bottom:16px;">게임 모아보기</div>
+
+    <div id="game-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:12px;">
+      {% for g in games %}
+      <div data-tag="{{ g.genre }}" data-title="{{ g.title }}">
+        <div class="p-2 rounded-4 game-card" role="button" tabindex="0" style="cursor:pointer;"
+             data-game-id="{{ g.id }}"
+             data-game-title="{{ g.title }}"
+             data-game-desc="{{ g.description }}"
+             data-game-tag="{{ g.genre }}"
+             data-game-thumb="{{ g.thumb_url }}"
+             data-game-lore="{{ g.world_setting }}"
+             data-play-url="{% url 'game:view' g.id %}">
+          <div class="rounded-4 thumb-box" data-tag="{{ g.genre }}">
+            <div class="thumb-fallback">
+              <span class="fb-icon">◈</span>
+              <span>#{{ g.genre }}</span>
+            </div>
+            {% if g.thumb_url %}<img src="{{ g.thumb_url }}" alt="{{ g.title }}" onerror="this.style.display='none'">{% endif %}
+          </div>
+          <div style="margin-top:8px; font-weight:800; font-size:.88rem; line-height:1.3;">{{ g.title }}</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:5px;">
+            <span style="opacity:.45; font-size:11px; letter-spacing:.05em;">#{{ g.genre }}</span>
+            <span style="opacity:.28; font-size:11px;">{{ g.created_by.username }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+      <div id="no-results">검색 결과가 없습니다.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── 게임 정보 모달 ── -->
+<div class="gm-overlay" id="gmOverlay">
+  <div class="gm-panel" id="gmPanel">
+    <button class="gm-close" id="gmClose">✕</button>
+
+    <!-- Step 1: 게임 정보 -->
+    <div id="step-info" class="gm-body">
+      <div class="gm-thumb-wrap">
+        <div class="gm-fallback" id="gmFallback" data-tag="">
+          <span class="gm-icon">◈</span>
+          <span id="gmFallbackTag"></span>
+        </div>
+        <img id="gmImg" src="" alt="" onerror="this.style.display='none'">
+      </div>
+      <div class="gm-info">
+        <span class="gm-tag-chip" id="gmTag"></span>
+        <div class="gm-title" id="gmTitle"></div>
+        <div class="gm-desc" id="gmDesc"></div>
+        <div class="gm-divider"></div>
+        <div class="gm-lore-label">세계관</div>
+        <div class="gm-lore" id="gmLore"></div>
+        <div class="gm-actions">
+          <a class="gm-btn-detail" id="gmBtnDetail" href="#">상세보기</a>
           {% if user.is_authenticated %}
-            <a class="user-item" href="{% url 'profiles:list' %}">프로필</a>
-            <div class="user-sep"></div>
-            <form method="post" action="{% url 'logout' %}" style="margin:0;">
-              {% csrf_token %}
-              <button type="submit" class="user-item" style="width:100%; background:none; border:none; text-align:left; cursor:pointer;">로그아웃</button>
-            </form>
+            <button class="gm-btn-play" id="gmBtnPlay" onclick="showPersonaStep()">플레이</button>
           {% else %}
-            <a class="user-item" href="{% url 'login' %}">로그인</a>
-            <a class="user-item" href="{% url 'accounts:signup' %}">회원가입</a>
+            <a class="gm-btn-play" href="{% url 'login' %}">로그인 후 플레이</a>
           {% endif %}
         </div>
       </div>
     </div>
 
-  </div>
+    <!-- Step 2: 페르소나 선택 -->
+    <div id="step-persona" style="display:none;">
+      <div style="font-weight:800; font-size:1.1rem; margin-bottom:6px; color:#d0dcff;">페르소나 선택</div>
+      <div style="font-size:.82rem; color:rgba(255,255,255,.35); margin-bottom:18px;">이 게임에서 사용할 페르소나를 선택하세요. 선택 후 메모를 수정할 수 있습니다.</div>
 
-  <!-- ── 장르 칩 ── -->
-  <div class="d-flex gap-2 flex-wrap mb-4" id="chip-bar">
-    <span class="px-3 py-1 rounded-pill chip active" data-filter="all">추천</span>
-    <span class="px-3 py-1 rounded-pill chip" data-filter="무협">무협</span>
-    <span class="px-3 py-1 rounded-pill chip" data-filter="로맨스">로맨스</span>
-    <span class="px-3 py-1 rounded-pill chip" data-filter="SF">SF</span>
-    <span class="px-3 py-1 rounded-pill chip" data-filter="판타지">판타지</span>
-    <span class="px-3 py-1 rounded-pill chip" data-filter="아포칼립스">아포칼립스</span>
-    <span class="px-3 py-1 rounded-pill chip" data-filter="현대">현대</span>
-  </div>
-
-  <h5 class="mb-3" style="font-weight:800;">게임 모아보기</h5>
-
-  <div class="row g-3" id="game-grid">
-    {% for g in games %}
-    <div class="col-6 col-md-3" data-tag="{{ g.tag }}" data-title="{{ g.title }}">
-      <a href="{% url 'profiles:list' %}?game_id={{ g.id }}" class="text-decoration-none text-light">
-        <div class="p-2 rounded-4 game-card">
-
-          <div class="rounded-4 thumb-box" data-tag="{{ g.tag }}">
-            <!-- 장르별 폴백 (이미지 뒤에 항상 존재) -->
-            <div class="thumb-fallback">
-              <span class="fb-icon">◈</span>
-              <span>#{{ g.tag }}</span>
-            </div>
-            <!-- 이미지 로드 실패 시 그냥 숨김 → 폴백 노출 -->
-            <img
-              src="{% static g.thumb %}"
-              alt="{{ g.title }}"
-              onerror="this.style.display='none'"
-            >
+      <div id="persona-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+        <!-- 페르소나 없이 시작 -->
+        <div class="ps-card selected" id="ps-none" onclick="selectPersona(null, this)" data-persona-id="">
+          <div>
+            <div class="ps-card-title">페르소나 없이 시작</div>
+            <div class="ps-card-preview">아이디로 게임을 진행합니다</div>
           </div>
-
-          <div class="mt-2" style="font-weight:800; font-size:.92rem;">{{ g.title }}</div>
-          <div style="opacity:.65; font-size:12px; line-height:1.4; margin-top:2px;">{{ g.desc }}</div>
-          <div class="mt-2" style="opacity:.55; font-size:11px; letter-spacing:.06em;">#{{ g.tag }}</div>
         </div>
-      </a>
+        {% for p in personas %}
+        <div class="ps-card" onclick="selectPersona('{{ p.id }}', this)" data-persona-id="{{ p.id }}">
+          <div style="flex:1; min-width:0;">
+            <div class="ps-card-title">{{ p.title }}</div>
+            <div class="ps-card-preview">{{ p.content|truncatechars:60 }}</div>
+          </div>
+        </div>
+        {% empty %}
+        {% endfor %}
+        {% if not personas %}
+        <div style="padding:16px; text-align:center; font-size:.82rem; color:rgba(255,255,255,.25);">
+          저장된 페르소나가 없습니다.
+          <a href="{% url 'profiles:persona_create' %}" style="color:#4a7aff; text-decoration:none;">만들러 가기 →</a>
+        </div>
+        {% endif %}
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:.75rem; color:rgba(255,255,255,.4); margin-bottom:6px; letter-spacing:.05em;">메모 (선택사항)</label>
+        <textarea id="userMemoInput" rows="3" placeholder="이 게임에서만 적용할 추가 설정을 입력하세요."
+                  style="width:100%; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:8px;
+                         padding:10px 12px; color:#d0dcff; font-size:.85rem; outline:none; resize:none; box-sizing:border-box; font-family:inherit;"
+                  onfocus="this.style.borderColor='#4a7aff'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button onclick="backToInfo()" style="flex:1; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.18); background:transparent; color:rgba(255,255,255,.7); font-size:.9rem; font-weight:700; cursor:pointer;">← 뒤로</button>
+        <button id="startGameBtn" onclick="startGame()" style="flex:2; padding:12px; border-radius:12px; border:none; background:#fff; color:#000; font-size:.92rem; font-weight:800; cursor:pointer;">시작하기</button>
+      </div>
     </div>
-    {% endfor %}
 
-    <div id="no-results">검색 결과가 없습니다.</div>
   </div>
-
 </div>
-
-<!-- ── 드로어 ── -->
-<div class="drawer-overlay" id="drawerOverlay"></div>
-
-<aside class="drawer" id="drawer">
-  <div class="drawer-header">
-    <div class="drawer-title">메뉴</div>
-    <button type="button" class="drawer-close" id="drawerCloseBtn" aria-label="close">✕</button>
-  </div>
-
-  <a class="drawer-link" href="/">홈 <span style="opacity:.5;">→</span></a>
-  <a class="drawer-link" href="#">월드 <span style="opacity:.5;">→</span></a>
-  <a class="drawer-link" href="#">마이 로그 <span style="opacity:.5;">→</span></a>
-
-  <div class="drawer-section">
-    <div class="drawer-muted">계정</div>
-    {% if user.is_authenticated %}
-      <a class="drawer-link" href="{% url 'profiles:list' %}">프로필 <span style="opacity:.5;">→</span></a>
-      <form method="post" action="{% url 'logout' %}" style="margin:0;">
-        {% csrf_token %}
-        <button type="submit" class="drawer-link" style="width:100%; background:none; border:none; text-align:left; cursor:pointer;">로그아웃 <span style="opacity:.5;">→</span></button>
-      </form>
-    {% else %}
-      <a class="drawer-link" href="{% url 'login' %}">로그인 <span style="opacity:.5;">→</span></a>
-      <a class="drawer-link" href="{% url 'accounts:signup' %}">회원가입 <span style="opacity:.5;">→</span></a>
-    {% endif %}
-  </div>
-</aside>
 
 <script>
 (function () {
-  // ── 드로어 ──
-  const drawer  = document.getElementById("drawer");
-  const overlay = document.getElementById("drawerOverlay");
-  const openBtn = document.getElementById("drawerOpenBtn");
-  const closeBtn = document.getElementById("drawerCloseBtn");
+  const gmOverlay = document.getElementById("gmOverlay");
+  const gmClose   = document.getElementById("gmClose");
+  const stepInfo  = document.getElementById("step-info");
+  const stepPers  = document.getElementById("step-persona");
 
-  const openDrawer  = () => { drawer.classList.add("show"); overlay.classList.add("show"); };
-  const closeDrawer = () => { drawer.classList.remove("show"); overlay.classList.remove("show"); };
+  let currentPlayUrl = "";
+  let selectedPersonaId = "";
 
-  openBtn?.addEventListener("click", openDrawer);
-  overlay?.addEventListener("click", closeDrawer);
-  closeBtn?.addEventListener("click", closeDrawer);
-  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeDrawer(); userMenu?.classList.remove("show"); } });
-
-  // ── 유저 메뉴 ──
-  const userBtn  = document.getElementById("userBtn");
-  const userMenu = document.getElementById("userMenu");
-
-  userBtn?.addEventListener("click", () => userMenu.classList.toggle("show"));
-  document.addEventListener("click", e => {
-    if (!userMenu?.classList.contains("show")) return;
-    if (!e.target.closest(".user-wrap")) userMenu.classList.remove("show");
+  // 게임 카드 클릭
+  document.querySelectorAll(".game-card[data-game-id]").forEach(card => {
+    card.addEventListener("click", () => {
+      const tag = card.dataset.gameTag;
+      document.getElementById("gmImg").src = card.dataset.gameThumb || "";
+      document.getElementById("gmFallback").dataset.tag = tag;
+      document.getElementById("gmFallbackTag").textContent = "#" + tag;
+      document.getElementById("gmTag").textContent = "#" + tag;
+      document.getElementById("gmTitle").textContent = card.dataset.gameTitle;
+      document.getElementById("gmDesc").textContent = card.dataset.gameDesc;
+      document.getElementById("gmLore").textContent = card.dataset.gameLore;
+      document.getElementById("gmBtnDetail").href = "/game/" + card.dataset.gameId + "/detail/";
+      currentPlayUrl = card.dataset.playUrl;
+      stepInfo.style.display = "";
+      stepPers.style.display = "none";
+      gmOverlay.classList.add("show");
+      document.body.style.overflow = "hidden";
+    });
+    card.addEventListener("keydown", e => { if (e.key === "Enter") card.click(); });
   });
 
-  // ── 통합 필터 (칩 + 검색) ──
-  const chips      = document.querySelectorAll("#chip-bar .chip[data-filter]");
-  const cards      = document.querySelectorAll("#game-grid [data-tag]");
-  const noResults  = document.getElementById("no-results");
-  const searchInput = document.getElementById("searchInput");
+  // 모달 닫기
+  window.closeGameModal = function() {
+    gmOverlay.classList.remove("show");
+    document.body.style.overflow = "";
+  };
+  gmClose?.addEventListener("click", closeGameModal);
+  gmOverlay?.addEventListener("click", e => { if (e.target === gmOverlay) closeGameModal(); });
 
-  let activeFilter = "all";
-  let searchQuery  = "";
+  // 페르소나 스텝
+  window.showPersonaStep = function() {
+    stepInfo.style.display = "none";
+    stepPers.style.display = "block";
+    selectedPersonaId = "";
+    document.getElementById("userMemoInput").value = "";
+  };
+  window.backToInfo = function() {
+    stepPers.style.display = "none";
+    stepInfo.style.display = "";
+  };
+  window.selectPersona = function(id, el) {
+    document.querySelectorAll(".ps-card").forEach(c => c.classList.remove("selected"));
+    el.classList.add("selected");
+    selectedPersonaId = id || "";
+
+    // 선택한 페르소나 내용을 메모란에 미리 채움 (수정용)
+    if (id) {
+      const preview = el.querySelector(".ps-card-preview")?.textContent || "";
+      document.getElementById("userMemoInput").placeholder = preview;
+    } else {
+      document.getElementById("userMemoInput").placeholder = "이 게임에서만 적용할 추가 설정을 입력하세요.";
+    }
+  };
+  window.startGame = function() {
+    const memo = document.getElementById("userMemoInput").value.trim();
+    let url = currentPlayUrl;
+    const params = new URLSearchParams();
+    if (selectedPersonaId) params.set("persona_id", selectedPersonaId);
+    if (memo) params.set("user_memo", memo);
+    if (params.toString()) url += "?" + params.toString();
+    window.location.href = url;
+  };
+
+  // 유저 메뉴
+  const userBtn  = document.getElementById("userBtn");
+  const userMenu = document.getElementById("userMenu");
+  userBtn?.addEventListener("click", () => {
+    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+  });
+  document.addEventListener("click", e => {
+    if (!e.target.closest("#userBtn") && !e.target.closest("#userMenu")) {
+      if (userMenu) userMenu.style.display = "none";
+    }
+  });
+
+  // ESC
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { closeGameModal(); if (userMenu) userMenu.style.display = "none"; }
+  });
+
+  // 칩 + 검색 필터
+  const chips  = document.querySelectorAll("#chip-bar .chip[data-filter]");
+  const cards  = document.querySelectorAll("#game-grid [data-tag]");
+  const noRes  = document.getElementById("no-results");
+  const search = document.getElementById("searchInput");
+  let activeFilter = "all", searchQuery = "";
 
   function applyFilter() {
-    const filters = activeFilter === "all" ? null : activeFilter.split(",");
+    const filters = activeFilter === "all" ? null : [activeFilter];
     const q = searchQuery.trim().toLowerCase();
     let visible = 0;
-
     cards.forEach(card => {
-      const tag   = card.dataset.tag   || "";
-      const title = card.dataset.title || "";
-
-      const chipOk   = !filters || filters.includes(tag);
-      const searchOk = !q || title.toLowerCase().includes(q) || tag.toLowerCase().includes(q);
-
-      const show = chipOk && searchOk;
-      card.style.display = show ? "" : "none";
-      if (show) visible++;
+      const ok = (!filters || filters.includes(card.dataset.tag || "")) &&
+                 (!q || (card.dataset.title || "").toLowerCase().includes(q) || (card.dataset.tag || "").toLowerCase().includes(q));
+      card.style.display = ok ? "" : "none";
+      if (ok) visible++;
     });
-
-    noResults.style.display = visible === 0 ? "block" : "none";
+    noRes.style.display = visible === 0 ? "block" : "none";
   }
 
   chips.forEach(chip => {
@@ -368,11 +424,7 @@
       applyFilter();
     });
   });
-
-  searchInput?.addEventListener("input", e => {
-    searchQuery = e.target.value;
-    applyFilter();
-  });
+  search?.addEventListener("input", e => { searchQuery = e.target.value; applyFilter(); });
 })();
 </script>
 {% endblock %}

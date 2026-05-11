@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(.venv/Scripts/python -c ' *)"
+      "Bash(.venv/Scripts/python -c ' *)",
+      "Bash(python manage.py makemigrations gamebuilder)",
+      "Bash(python manage.py migrate)",
+      "Bash(python manage.py check)",
+      "Bash(.venv\\\\Scripts\\\\pip freeze *)",
+      "Bash(pip freeze *)",
+      "Bash(pip3 freeze *)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings .venv/Scripts/python.exe -c ' *)",
+      "Bash(which python3 *)",
+      "Read(//c/Users/305/AppData/Local/Programs/Python//**)",
+      "Bash(python3 -c ' *)",
+      "Bash(sqlite3 db.sqlite3 \".tables\")",
+      "Bash(python3 \"d:\\\\개인프로젝트\\\\GAME\\\\create_sample_games.py\")",
+      "Bash(python -c \"import django; import os; os.environ.setdefault\\('DJANGO_SETTINGS_MODULE','config.settings'\\); django.setup\\(\\); print\\('OK'\\)\")",
+      "Bash(python manage.py check --deploy)"
     ]
   }
 }

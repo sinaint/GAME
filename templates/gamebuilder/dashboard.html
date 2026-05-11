@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}제작자 대시보드 — NOVA{% endblock %}
+{% block wrap_class %}{% endblock %}
+
+{% block content %}
+<style>
+  .db-wrap { max-width: 960px; margin: 0 auto; padding: 48px 32px 80px; }
+  .db-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; }
+  .db-title { font-size: 1.5rem; font-weight: 900; }
+  .db-subtitle { font-size: .88rem; opacity: .45; margin-top: 4px; }
+  .btn-new {
+    padding: 10px 20px; border-radius: 12px;
+    background: #fff; color: #000;
+    font-size: .9rem; font-weight: 800;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: background .12s;
+  }
+  .btn-new:hover { background: #e8e8e8; color: #000; }
+
+  .game-list { display: flex; flex-direction: column; gap: 14px; }
+  .game-row {
+    display: flex; align-items: center; gap: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 18px 20px;
+  }
+  .game-row-thumb {
+    width: 48px; height: 72px; border-radius: 8px;
+    object-fit: cover; flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: rgba(255,255,255,0.3);
+    overflow: hidden;
+  }
+  .game-row-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .game-row-info { flex: 1; min-width: 0; }
+  .game-row-title { font-weight: 800; font-size: 1rem; margin-bottom: 4px; }
+  .game-row-meta { font-size: .82rem; color: rgba(255,255,255,0.45); display: flex; gap: 12px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  }
+  .badge-pub { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+  .badge-draft { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.12); }
+  .game-row-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .act-btn {
+    padding: 7px 14px; border-radius: 10px; font-size: .82rem; font-weight: 700;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.14);
+    background: transparent; color: rgba(255,255,255,0.75);
+    text-decoration: none; transition: background .12s;
+  }
+  .act-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .act-btn.danger { border-color: rgba(239,68,68,0.3); color: rgba(239,68,68,0.75); }
+  .act-btn.danger:hover { background: rgba(239,68,68,0.1); color: #f87171; }
+  .act-btn.publish { border-color: rgba(34,197,94,0.3); color: rgba(34,197,94,0.8); }
+  .act-btn.publish:hover { background: rgba(34,197,94,0.1); }
+  .act-btn.unpublish { border-color: rgba(250,204,21,0.3); color: rgba(250,204,21,0.8); }
+  .act-btn.unpublish:hover { background: rgba(250,204,21,0.08); }
+
+  .empty-state {
+    text-align: center; padding: 64px 0;
+    color: rgba(255,255,255,0.25);
+  }
+  .empty-state .big { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state p { font-size: .95rem; }
+</style>
+
+<div class="db-wrap">
+  <div class="db-header">
+    <div>
+      <div class="db-title">제작자 대시보드</div>
+      <div class="db-subtitle">내 게임을 만들고 관리하세요.</div>
+    </div>
+    <a href="{% url 'gamebuilder:create' %}" class="btn-new">+ 새 게임 만들기</a>
+  </div>
+
+  {% if games %}
+  <div class="game-list">
+    {% for g in games %}
+    <div class="game-row">
+      <div class="game-row-thumb">
+        {% if g.thumb_url %}
+          <img src="{{ g.thumb_url }}" alt="{{ g.title }}" onerror="this.style.display='none'">
+        {% else %}
+          ◈
+        {% endif %}
+      </div>
+
+      <div class="game-row-info">
+        <div class="game-row-title">
+          {{ g.title }}
+          <span class="badge {% if g.is_published %}badge-pub{% else %}badge-draft{% endif %}" style="margin-left:8px;">
+            {% if g.is_published %}공개{% else %}비공개{% endif %}
+          </span>
+        </div>
+        <div class="game-row-meta">
+          <span>#{{ g.genre }}</span>
+          <span>▶ {{ g.play_count }}</span>
+          <span>♡ {{ g.like_count }}</span>
+          <span>✎ {{ g.comments.count }}</span>
+          <span>{{ g.updated_at|date:"Y.m.d" }} 수정</span>
+        </div>
+      </div>
+
+      <div class="game-row-actions">
+        <a href="{% url 'gamebuilder:edit' g.pk %}" class="act-btn">수정</a>
+
+        <form method="post" action="{% url 'gamebuilder:toggle_publish' g.pk %}" style="margin:0;">
+          {% csrf_token %}
+          {% if g.is_published %}
+            <button type="submit" class="act-btn unpublish">비공개</button>
+          {% else %}
+            <button type="submit" class="act-btn publish">공개</button>
+          {% endif %}
+        </form>
+
+        <form method="post" action="{% url 'gamebuilder:delete' g.pk %}" style="margin:0;"
+              onsubmit="return confirm('정말 삭제하시겠습니까?')">
+          {% csrf_token %}
+          <button type="submit" class="act-btn danger">삭제</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="big">◈</div>
+    <p>아직 만든 게임이 없습니다.<br>첫 번째 게임을 만들어보세요!</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

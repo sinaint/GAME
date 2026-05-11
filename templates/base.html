@@ -18,12 +18,27 @@
 <body class="bg-dark text-light">
 
   {% block topbar %}
-  <div style="flex-shrink:0; padding: 16px 20px;">
+  <div style="flex-shrink:0; padding: 14px 24px; display:flex; align-items:center; justify-content:space-between;
+              border-bottom:1px solid rgba(255,255,255,0.06);">
     <a href="/" style="font-weight:900; font-size:22px; letter-spacing:-.5px; color:#fff; text-decoration:none;">NOVA</a>
+    <div style="display:flex; align-items:center; gap:16px;">
+      {% if user.is_authenticated %}
+        <a href="{% url 'profiles:mypage' %}"
+           style="font-size:.85rem; color:rgba(255,255,255,0.5); text-decoration:none; font-weight:600;"
+           onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">마이페이지</a>
+        <a href="{% url 'logout' %}"
+           style="font-size:.85rem; color:rgba(255,255,255,0.35); text-decoration:none;"
+           onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.35)'">로그아웃</a>
+      {% else %}
+        <a href="{% url 'login' %}"
+           style="font-size:.85rem; color:rgba(255,255,255,0.5); text-decoration:none; font-weight:600;"
+           onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">로그인</a>
+      {% endif %}
+    </div>
   </div>
   {% endblock %}
 
-  <div class="page-wrap">
+  <div class="{% block wrap_class %}page-wrap{% endblock %}">
     {% block content %}{% endblock %}
   </div>
 

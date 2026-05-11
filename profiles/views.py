@@ -1,76 +1,85 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.utils import timezone
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
 
-from .forms import ProfileForm
-from .models import Profile
+from .models import UserMemo, UserPersona
+
+
+# ── 마이페이지 ──────────────────────────────────────────────────────────────
+
+@login_required
+def mypage(request):
+    tab = request.GET.get("tab", "info")
+    memos = UserMemo.objects.filter(user=request.user)
+    personas = UserPersona.objects.filter(user=request.user)
+    return render(request, "profiles/mypage.html", {
+        "tab": tab,
+        "memos": memos,
+        "personas": personas,
+    })
 
 
 @login_required
-def profile_list(request):
-    profiles = Profile.objects.filter(user=request.user, is_deleted=False).order_by(
-        "slot"
-    )
-    by_slot = {p.slot: p for p in profiles}
-
-    game_id = request.GET.get("game_id", "1")
-    context = {
-        "slots": [(n, by_slot.get(n)) for n in range(1, 4)],
-        "game_id": game_id,
-    }
-    return render(request, "profiles/profile_list.html", context)
-
-
-@login_required
-def profile_create(request):
-    # 이미 3개면 생성 막기
-    active_count = Profile.objects.filter(user=request.user, is_deleted=False).count()
-    if active_count >= 3:
-        return redirect("profiles:list")
-
+def memo_create(request):
     if request.method == "POST":
-        form = ProfileForm(request.POST)
-        if form.is_valid():
-            profile = form.save(commit=False)
-            profile.user = request.user
-
-            # 혹시 같은 슬롯이 이미 있으면 막기(UniqueConstraint가 최종 방어)
-            exists = Profile.objects.filter(
-                user=request.user,
-                slot=profile.slot,
-                is_deleted=False,
-            ).exists()
-            if exists:
-                form.add_error("slot", "해당 슬롯은 이미 사용 중입니다.")
-            else:
-                # 등급은 일단 기본값(C) 유지. 나중에 등급 판정 함수 붙일 예정
-                profile.save()
-                return redirect("profiles:list")
-    else:
-        slot = request.GET.get("slot")
-        initial = {"slot": slot} if slot in ("1", "2", "3") else {}
-        form = ProfileForm(initial=initial)
-
-    return render(request, "profiles/profile_form.html", {"form": form})
+        title = request.POST.get("title", "").strip()
+        content = request.POST.get("content", "").strip()
+        if title:
+            UserMemo.objects.create(user=request.user, title=title, content=content)
+        return redirect("profiles:mypage")
+    return render(request, "profiles/memo_form.html", {"obj": None})
 
 
 @login_required
-def profile_select(request, slot: int):
-    # 나중에 game 앱과 연결될 "선택된 프로필" 저장
-    profile = Profile.objects.filter(
-        user=request.user,
-        slot=slot,
-        is_deleted=False,
-    ).first()
+def memo_edit(request, pk):
+    memo = get_object_or_404(UserMemo, pk=pk, user=request.user)
+    if request.method == "POST":
+        title = request.POST.get("title", "").strip()
+        content = request.POST.get("content", "").strip()
+        if title:
+            memo.title = title
+            memo.content = content
+            memo.save()
+        return redirect("profiles:mypage")
+    return render(request, "profiles/memo_form.html", {"obj": memo})
 
-    if not profile:
-        return redirect("profiles:list")
 
-    try:
-        game_id = int(request.GET.get("game_id", 1))
-    except (ValueError, TypeError):
-        game_id = 1
+@login_required
+@require_POST
+def memo_delete(request, pk):
+    memo = get_object_or_404(UserMemo, pk=pk, user=request.user)
+    memo.delete()
+    return redirect("profiles:mypage")
 
-    request.session["active_profile_id"] = profile.id
-    request.session["active_game_id"] = game_id
-    return redirect("game:view", profile_id=profile.id)
+
+@login_required
+def persona_create(request):
+    if request.method == "POST":
+        title = request.POST.get("title", "").strip()
+        content = request.POST.get("content", "").strip()
+        if title:
+            UserPersona.objects.create(user=request.user, title=title, content=content)
+        return redirect("profiles:mypage")
+    return render(request, "profiles/persona_form.html", {"obj": None})
+
+
+@login_required
+def persona_edit(request, pk):
+    persona = get_object_or_404(UserPersona, pk=pk, user=request.user)
+    if request.method == "POST":
+        title = request.POST.get("title", "").strip()
+        content = request.POST.get("content", "").strip()
+        if title:
+            persona.title = title
+            persona.content = content
+            persona.save()
+        return redirect("profiles:mypage")
+    return render(request, "profiles/persona_form.html", {"obj": persona})
+
+
+@login_required
+@require_POST
+def persona_delete(request, pk):
+    persona = get_object_or_404(UserPersona, pk=pk, user=request.user)
+    persona.delete()
+    return redirect("profiles:mypage")

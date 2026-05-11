@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}{% if is_new %}새 게임 만들기{% else %}게임 수정{% endif %} — NOVA{% endblock %}
+{% block wrap_class %}{% endblock %}
+
+{% block content %}
+<style>
+  .ed-wrap { max-width: 800px; margin: 0 auto; padding: 48px 32px 80px; }
+  .ed-header { margin-bottom: 40px; }
+  .ed-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 6px; }
+  .ed-subtitle { font-size: .88rem; opacity: .45; }
+
+  .ed-section { margin-bottom: 36px; }
+  .ed-section-label {
+    font-size: .72rem; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; color: rgba(255,255,255,0.35);
+    margin-bottom: 14px; padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .field-group { display: flex; flex-direction: column; gap: 14px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: .82rem; font-weight: 700; color: rgba(255,255,255,0.55); }
+  .field input, .field select, .field textarea {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: #fff; font-size: .92rem;
+    outline: none; transition: border-color .14s;
+    width: 100%; box-sizing: border-box;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: rgba(255,255,255,0.28);
+  }
+  .field input::placeholder, .field textarea::placeholder {
+    color: rgba(255,255,255,0.22);
+  }
+  .field select option { background: #1a1f2e; }
+  .field textarea { resize: vertical; min-height: 100px; line-height: 1.65; }
+  .field textarea.prologue { min-height: 200px; font-family: inherit; }
+  .field-hint { font-size: .75rem; color: rgba(255,255,255,0.3); margin-top: 2px; }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  .toggle-label { font-size: .92rem; font-weight: 700; }
+  .toggle-desc { font-size: .8rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.12);
+    border-radius: 999px; cursor: pointer;
+    transition: background .18s;
+  }
+  .toggle-track::after {
+    content: "";
+    position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: #fff; border-radius: 999px;
+    transition: transform .18s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: #22c55e; }
+  .toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
+
+  .ed-actions {
+    display: flex; gap: 10px; justify-content: flex-end;
+    margin-top: 40px; padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .btn-cancel {
+    padding: 11px 24px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: transparent; color: rgba(255,255,255,0.7);
+    font-size: .92rem; font-weight: 700;
+    text-decoration: none; cursor: pointer;
+    transition: background .12s;
+  }
+  .btn-cancel:hover { background: rgba(255,255,255,0.07); color: #fff; }
+  .btn-save {
+    padding: 11px 32px; border-radius: 12px;
+    border: none; background: #fff; color: #000;
+    font-size: .92rem; font-weight: 800;
+    cursor: pointer; transition: background .12s;
+  }
+  .btn-save:hover { background: #e8e8e8; }
+
+  .error-box {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 10px; padding: 12px 16px;
+    color: #f87171; font-size: .88rem; margin-bottom: 20px;
+  }
+</style>
+
+<div class="ed-wrap">
+  <a href="{% url 'gamebuilder:dashboard' %}" style="font-size:.85rem; color:rgba(255,255,255,0.4); text-decoration:none; display:block; margin-bottom:24px;">← 대시보드</a>
+
+  <div class="ed-header">
+    <div class="ed-title">{% if is_new %}새 게임 만들기{% else %}게임 수정{% endif %}</div>
+    <div class="ed-subtitle">{% if is_new %}새로운 게임을 만들고 플레이어들과 공유하세요.{% else %}게임 정보를 수정합니다.{% endif %}</div>
+  </div>
+
+  {% if error %}
+  <div class="error-box">{{ error }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <!-- 기본 정보 -->
+    <div class="ed-section">
+      <div class="ed-section-label">기본 정보</div>
+      <div class="field-group">
+        <div class="field">
+          <label>제목 *</label>
+          <input type="text" name="title" value="{{ game.title|default:'' }}" placeholder="게임 제목을 입력하세요" maxlength="100" required>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>장르 *</label>
+            <select name="genre" required>
+              <option value="">장르 선택</option>
+              {% for g in genres %}
+              <option value="{{ g }}" {% if game.genre == g %}selected{% endif %}>{{ g }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>추가 태그</label>
+            <input type="text" name="extra_tags" value="{{ extra_tags_str|default:'' }}" placeholder="태그1, 태그2, 태그3">
+            <div class="field-hint">쉼표로 구분 (예: 시뮬레이션, 전략, 남성향)</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>한줄 소개</label>
+          <input type="text" name="description" value="{{ game.description|default:'' }}" placeholder="카드에 표시되는 짧은 소개" maxlength="300">
+        </div>
+      </div>
+    </div>
+
+    <!-- 콘텐츠 -->
+    <div class="ed-section">
+      <div class="ed-section-label">콘텐츠</div>
+      <div class="field-group">
+        <div class="field">
+          <label>세계관 요약</label>
+          <textarea name="world_setting" rows="3" placeholder="게임 선택 팝업에 표시되는 세계관 요약 (2~4문장)">{{ game.world_setting|default:'' }}</textarea>
+        </div>
+        <div class="field">
+          <label>상세 설명</label>
+          <textarea name="detailed_desc" rows="4" placeholder="상세 페이지에 표시되는 긴 설명">{{ game.detailed_desc|default:'' }}</textarea>
+        </div>
+        <div class="field">
+          <label>프롤로그 미리보기</label>
+          <textarea name="prologue" class="prologue" placeholder="게임 시작 전 보여줄 프롤로그. 줄바꿈이 그대로 적용됩니다.">{{ game.prologue|default:'' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 설정 -->
+    <div class="ed-section">
+      <div class="ed-section-label">설정</div>
+      <div class="field-group">
+        <div class="field">
+          <label>프롬프트 템플릿</label>
+          <input type="text" name="prompt_template" value="{{ game.prompt_template|default:'기본 템플릿' }}" placeholder="기본 템플릿">
+        </div>
+        <div class="field">
+          <label>썸네일 이미지 URL</label>
+          <input type="url" name="thumb_url" value="{{ game.thumb_url|default:'' }}" placeholder="https://example.com/image.jpg">
+          <div class="field-hint">외부 이미지 URL을 입력하세요. 비워두면 장르별 기본 이미지가 사용됩니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 공개 설정 -->
+    <div class="ed-section">
+      <div class="ed-section-label">공개 설정</div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">게임 공개</div>
+          <div class="toggle-desc">공개 시 홈 화면에 노출되어 모든 플레이어가 플레이할 수 있습니다.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" name="is_published" {% if game.is_published %}checked{% endif %}>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="ed-actions">
+      <a href="{% url 'gamebuilder:dashboard' %}" class="btn-cancel">취소</a>
+      <button type="submit" class="btn-save">저장</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
