@@ -26,7 +26,15 @@
       "Bash(D:/Project/GAME/.venv/Scripts/python.exe -c ' *)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(python -c ' *)",
+      "Bash(python manage.py makemigrations main)",
+      "Bash(python manage.py showmigrations --list)",
+      "Bash(python manage.py makemigrations main --name gamebookmark)",
+      "Bash(python manage.py migrate main)",
+      "Bash(python manage.py migrate game 0003 --fake)",
+      "Bash(python manage.py makemigrations profiles --name usersettings_tutorial)",
+      "Bash(python manage.py migrate profiles)"
     ]
   }
 }

@@ -68,6 +68,13 @@
   {# 하단 입력창 #}
   <div class="input-bar">
 
+    {# 첫 진입 입력 툴팁 #}
+    {% if session.turn == 0 %}
+    <div class="input-tooltip" id="inputTooltip">
+      행동은 <code>*행동*</code> 형식으로, 대사는 <code>"대사"</code> 형식으로 입력하세요
+    </div>
+    {% endif %}
+
     {# 입력 폼 #}
     <form method="post" action="{% url 'game:turn' game.id %}" id="gameForm">
       {% csrf_token %}
@@ -119,8 +126,14 @@
         <button type="button" class="right-item" data-popup="notePopup"><span class="ri-icon">📝</span>유저 노트</button>
         <button type="button" class="right-item" data-popup="memoryPopup"><span class="ri-icon">🧠</span>요약 메모리</button>
         <button type="button" class="right-item" data-popup="shortcutPopup"><span class="ri-icon">⌨</span>키보드 단축키</button>
-        <button type="button" class="right-item" data-popup="profilePopup"><span class="ri-icon">👤</span>대화 프로필</button>
+        <button type="button" class="right-item" data-popup="profilePopup"><span class="ri-icon">👤</span>페르소나</button>
       </nav>
+      <div style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.06);">
+        <button type="button" class="right-item restart-btn" id="restartBtn"
+                style="width:100%; color:rgba(239,68,68,0.7); border:1px solid rgba(239,68,68,0.15); border-radius:10px;">
+          <span class="ri-icon">↺</span>게임 재시작
+        </button>
+      </div>
     </div>
 
     {# 스타일 옵션 탭 #}
@@ -156,7 +169,21 @@
 {# 팝업: 유저 노트 #}
 <div class="modal-popup" id="notePopup">
   <div class="mp-head"><span class="mp-title">📝 유저 노트</span><button class="mp-close js-mclose">✕</button></div>
-  <textarea class="note-ta" id="noteTextarea" placeholder="자유롭게 메모를 남겨봐. 새로고침해도 유지돼."></textarea>
+  <select class="note-select" id="noteSelect">
+    <option value="">-- 메모 선택 --</option>
+    {% for m in memos %}
+    <option value="{{ m.id }}" data-content="{{ m.content|escape }}">{{ m.title|escape }}</option>
+    {% endfor %}
+  </select>
+  {% if not memos %}
+  <p class="note-empty-hint">메모가 없어요. <a href="{% url 'profiles:mypage' %}?tab=memo" class="note-goto-link">만들러 가기 →</a></p>
+  {% endif %}
+  <textarea class="note-ta" id="noteTextarea" placeholder="메모를 선택하거나 직접 입력해봐."></textarea>
+  <div class="note-actions">
+    <button class="note-btn note-btn-save" id="noteSaveBtn" disabled>저장</button>
+    <button class="note-btn note-btn-new" id="noteNewBtn">새 메모로 저장</button>
+  </div>
+  <div class="note-msg" id="noteMsg"></div>
 </div>
 
 {# 팝업: 요약 메모리 #}
@@ -181,24 +208,58 @@
   </table>
 </div>
 
-{# 팝업: 대화 프로필 #}
-<div class="modal-popup" id="profilePopup">
-  <div class="mp-head"><span class="mp-title">👤 대화 프로필</span><button class="mp-close js-mclose">✕</button></div>
-  <div class="prof-info">
-    {% if session.persona %}
-      <div class="pi-row"><span class="pi-lbl">페르소나</span><span class="pi-val" style="font-weight:700;">{{ session.persona.title }}</span></div>
-      {% for line in session.persona.content.splitlines %}
-        {% if line %}
-          <div class="pi-row"><span class="pi-val" style="width:100%; color:rgba(255,255,255,0.7);">{{ line }}</span></div>
-        {% endif %}
-      {% endfor %}
-    {% else %}
-      <div class="pi-row"><span class="pi-lbl">유저</span><span class="pi-val">{{ request.user.username }}</span></div>
-      {% if session.state_json.user_memo %}
-        <div class="pi-row"><span class="pi-lbl">메모</span><span class="pi-val" style="white-space:pre-wrap;">{{ session.state_json.user_memo }}</span></div>
-      {% endif %}
-    {% endif %}
+{# 팝업: 게임 재시작 확인 #}
+<div class="modal-popup" id="restartPopup">
+  <div class="mp-head"><span class="mp-title">↺ 게임 재시작</span><button class="mp-close js-mclose">✕</button></div>
+  <p style="font-size:.9rem; color:rgba(255,255,255,0.65); line-height:1.7; margin-bottom:20px;">
+    지금까지의 모든 진행 내역이 삭제됩니다.<br>정말 처음부터 다시 시작하시겠습니까?
+  </p>
+  <div style="display:flex; gap:10px;">
+    <button class="mp-close js-mclose"
+            style="flex:1; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.12);
+                   background:transparent; color:rgba(255,255,255,0.6); font-size:.88rem; font-weight:700; cursor:pointer;">
+      취소
+    </button>
+    <form method="post" action="{% url 'game:restart' game.id %}" style="flex:2; margin:0;">
+      {% csrf_token %}
+      <button type="submit"
+              style="width:100%; padding:10px; border-radius:10px; border:none;
+                     background:rgba(239,68,68,0.85); color:#fff;
+                     font-size:.88rem; font-weight:800; cursor:pointer;
+                     transition:background .12s;"
+              onmouseover="this.style.background='rgba(239,68,68,1)'"
+              onmouseout="this.style.background='rgba(239,68,68,0.85)'">
+        재시작
+      </button>
+    </form>
   </div>
+</div>
+
+{# 팝업: 페르소나 #}
+<div class="modal-popup" id="profilePopup">
+  <div class="mp-head"><span class="mp-title">👤 페르소나</span><button class="mp-close js-mclose">✕</button></div>
+  {% if personas %}
+    <div class="persona-list">
+      {% for p in personas %}
+      <button type="button"
+              class="persona-item js-set-persona{% if session.persona_id == p.id %} active{% endif %}"
+              data-id="{{ p.id }}" data-name="{{ p.title }}">
+        <div class="persona-item-info">
+          <span class="persona-item-name">{{ p.title }}</span>
+          <span class="persona-item-sub">{% if p.age %}{{ p.age }}{% if p.personality %} · {% endif %}{% endif %}{{ p.personality }}</span>
+        </div>
+        <span class="persona-check">✓</span>
+      </button>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="mp-empty">
+      페르소나가 없어요.<br>
+      <a href="{% url 'profiles:mypage' %}?tab=persona"
+         style="display:inline-block; margin-top:10px; color:rgba(150,190,255,0.75); text-decoration:none; font-size:.85rem;"
+         onmouseover="this.style.color='rgba(180,210,255,1)'" onmouseout="this.style.color='rgba(150,190,255,0.75)'">만들러 가기 →</a>
+    </div>
+  {% endif %}
 </div>
 
 <style>
@@ -224,7 +285,7 @@ body { display: flex; flex-direction: column; }
   align-items: center;
   height: 50px;
   padding: 0 16px;
-  background: #0d0f1c;
+  background: #0c0e14;
   border-bottom: 1px solid rgba(255,255,255,0.07);
   gap: 12px;
 }
@@ -261,7 +322,7 @@ body { display: flex; flex-direction: column; }
   width: 200px;
   flex-shrink: 0;
   overflow-y: auto;
-  background: #0b0d1a;
+  background: #0c0e14;
   border-right: 1px solid rgba(255,255,255,0.07);
   display: flex; flex-direction: column;
   scrollbar-width: thin;
@@ -304,7 +365,7 @@ body { display: flex; flex-direction: column; }
   flex: 1;
   overflow: hidden;
   display: flex; flex-direction: column;
-  background: #0a0c14;
+  background: #0e1016;
 }
 
 /* 스토리 스크롤 */
@@ -356,7 +417,7 @@ body { display: flex; flex-direction: column; }
   flex-shrink: 0;
   padding: 14px 20px 20px;
   border-top: 1px solid rgba(255,255,255,0.07);
-  background: #0b0d1a;
+  background: #0c0e14;
 }
 
 /* 입력 행 */
@@ -392,7 +453,7 @@ body { display: flex; flex-direction: column; }
   bottom: calc(100% + 8px);
   left: 0;
   z-index: 200;
-  background: #131629;
+  background: #16181e;
   border: 1px solid rgba(255,255,255,0.13);
   border-radius: 14px;
   padding: 8px;
@@ -451,7 +512,7 @@ body { display: flex; flex-direction: column; }
   overflow: hidden;
   flex-shrink: 0;
   transition: width .2s ease;
-  background: #0d0f1c;
+  background: #0c0e14;
   border-left: 1px solid transparent;
 }
 .game-right.show {
@@ -539,7 +600,7 @@ body { display: flex; flex-direction: column; }
   display: none; position: fixed;
   top: 50%; left: 50%; transform: translate(-50%, -50%);
   z-index: 301; width: min(440px, calc(100vw - 32px));
-  background: #0f1220;
+  background: #14161c;
   border: 1px solid rgba(255,255,255,0.12); border-radius: 18px;
   padding: 22px 24px;
   box-shadow: 0 24px 64px rgba(0,0,0,0.6);
@@ -547,20 +608,48 @@ body { display: flex; flex-direction: column; }
 .modal-popup.show { display: block; }
 
 .mp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.mp-title { font-weight: 700; font-size: .94rem; color: #c8d6ff; letter-spacing: .02em; }
+.mp-title { font-weight: 700; font-size: .94rem; color: rgba(255,255,255,0.9); letter-spacing: .02em; }
 .mp-close { background: none; border: none; color: rgba(255,255,255,0.38); font-size: 1rem; cursor: pointer; padding: 2px 7px; border-radius: 7px; line-height: 1; }
 .mp-close:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
 .mp-muted { font-size: .8rem; color: rgba(255,255,255,0.33); margin-bottom: 10px; }
 .mp-empty { font-size: .84rem; color: rgba(255,255,255,0.22); text-align: center; padding: 24px 0; }
 
+.note-select {
+  width: 100%; margin-bottom: 8px;
+  padding: 8px 12px; border-radius: 10px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11);
+  color: rgba(255,255,255,0.82); font-size: .85rem; outline: none; cursor: pointer;
+}
+.note-select:focus { border-color: rgba(255,255,255,0.24); }
+.note-select option { background: #16181e; color: rgba(255,255,255,0.85); }
+.note-empty-hint {
+  font-size: .78rem; color: rgba(255,255,255,0.28); margin: 0 0 8px; text-align: center;
+}
+.note-goto-link { color: rgba(150,190,255,0.72); text-decoration: none; }
+.note-goto-link:hover { color: rgba(180,210,255,1); }
 .note-ta {
-  width: 100%; height: 210px;
+  width: 100%; height: 150px;
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
   border-radius: 10px; color: rgba(255,255,255,0.85);
   font-size: .86rem; line-height: 1.6; padding: 10px 12px; resize: vertical; outline: none;
 }
 .note-ta:focus { border-color: rgba(255,255,255,0.2); }
 .note-ta::placeholder { color: rgba(255,255,255,0.2); }
+.note-actions { display: flex; gap: 8px; margin-top: 10px; }
+.note-btn {
+  flex: 1; padding: 8px 0; border-radius: 9px;
+  font-size: .82rem; font-weight: 700; cursor: pointer; border: none;
+  transition: background .13s, opacity .13s;
+}
+.note-btn:disabled { opacity: .35; cursor: default; }
+.note-btn-save {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.80);
+}
+.note-btn-save:not(:disabled):hover { background: rgba(255,255,255,0.14); color: #fff; }
+.note-btn-new { background: #fff; color: #000; }
+.note-btn-new:hover { background: #e8e8e8; }
+.note-msg { margin-top: 8px; font-size: .78rem; text-align: center; min-height: 1em; }
 
 .sc-tbl { width: 100%; border-collapse: collapse; }
 .sc-tbl tr + tr td { border-top: 1px solid rgba(255,255,255,0.05); }
@@ -574,6 +663,61 @@ body { display: flex; flex-direction: column; }
 .pi-row:last-child { border-bottom: none; }
 .pi-lbl { width: 4em; flex-shrink: 0; font-size: .76rem; color: rgba(100,160,255,0.6); letter-spacing: .04em; }
 .pi-val { font-size: .86rem; color: rgba(255,255,255,0.82); }
+
+/* ══ 입력 툴팁 말풍선 ══ */
+.input-tooltip {
+  position: relative;
+  max-width: 680px;
+  margin: 0 auto 10px;
+  padding: 9px 16px;
+  background: rgba(74,122,255,0.10);
+  border: 1px solid rgba(74,122,255,0.28);
+  border-radius: 12px;
+  font-size: .82rem; text-align: center;
+  color: rgba(190,215,255,0.88);
+  transition: opacity .3s ease;
+  pointer-events: none;
+}
+.input-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -7px; left: 50%;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid rgba(74,122,255,0.28);
+}
+.input-tooltip code {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  background: rgba(74,122,255,0.18);
+  border-radius: 4px; padding: 1px 6px;
+  color: #7aaaff; font-size: .80rem;
+}
+.input-tooltip.fade-out { opacity: 0; }
+.input-tooltip.hidden    { display: none; }
+
+/* ══ 페르소나 목록 ══ */
+.persona-list { display: flex; flex-direction: column; gap: 4px; }
+.persona-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  cursor: pointer; text-align: left; width: 100%;
+  transition: background .13s, border-color .13s;
+}
+.persona-item:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.14); }
+.persona-item.active { background: rgba(74,122,255,0.12); border-color: rgba(74,122,255,0.30); }
+.persona-item-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.persona-item-name { font-size: .88rem; font-weight: 700; color: rgba(255,255,255,0.88); }
+.persona-item-sub {
+  font-size: .74rem; color: rgba(255,255,255,0.38);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.persona-check {
+  font-size: .88rem; color: rgba(100,160,255,0.85);
+  opacity: 0; transition: opacity .12s; flex-shrink: 0; margin-left: 10px;
+}
+.persona-item.active .persona-check { opacity: 1; }
 </style>
 
 <script>
@@ -618,6 +762,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.querySelectorAll(".right-item[data-popup]").forEach(function (btn) {
     btn.addEventListener("click", function () { openModal(btn.dataset.popup, btn); });
+  });
+  document.getElementById("restartBtn").addEventListener("click", function () {
+    openModal("restartPopup", this);
   });
   document.querySelectorAll(".js-mclose").forEach(function (btn) {
     btn.addEventListener("click", closeModal);
@@ -688,10 +835,63 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   /* ── 유저 노트 ── */
-  const noteKey = "nova_note_{{ session.id }}";
-  const noteTA  = document.getElementById("noteTextarea");
-  noteTA.value  = localStorage.getItem(noteKey) || "";
-  noteTA.addEventListener("input", function () { localStorage.setItem(noteKey, noteTA.value); });
+  const memoSaveUrl  = "{% url 'game:memo_save' %}";
+  const noteSelect   = document.getElementById("noteSelect");
+  const noteTA       = document.getElementById("noteTextarea");
+  const noteSaveBtn  = document.getElementById("noteSaveBtn");
+  const noteNewBtn   = document.getElementById("noteNewBtn");
+  const noteMsg      = document.getElementById("noteMsg");
+  let selectedMemoId = "";
+
+  function showNoteMsg(text, ok) {
+    noteMsg.textContent = text;
+    noteMsg.style.color = ok ? "rgba(100,210,140,0.9)" : "rgba(255,100,100,0.85)";
+    setTimeout(function () { noteMsg.textContent = ""; }, 2500);
+  }
+
+  noteSelect.addEventListener("change", function () {
+    const opt = this.options[this.selectedIndex];
+    selectedMemoId = opt.value;
+    noteTA.value = opt.value ? (opt.dataset.content || "") : "";
+    noteSaveBtn.disabled = !opt.value;
+  });
+
+  noteSaveBtn.addEventListener("click", function () {
+    if (!selectedMemoId) return;
+    fetch(memoSaveUrl, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken, "Content-Type": "application/x-www-form-urlencoded" },
+      body: "memo_id=" + selectedMemoId + "&content=" + encodeURIComponent(noteTA.value),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.ok) {
+        const opt = noteSelect.querySelector('option[value="' + selectedMemoId + '"]');
+        if (opt) opt.dataset.content = noteTA.value;
+        showNoteMsg("저장됐어요!", true);
+      } else { showNoteMsg("저장 실패", false); }
+    });
+  });
+
+  noteNewBtn.addEventListener("click", function () {
+    const content = noteTA.value.trim();
+    if (!content) { showNoteMsg("내용을 입력해주세요.", false); return; }
+    fetch(memoSaveUrl, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken, "Content-Type": "application/x-www-form-urlencoded" },
+      body: "content=" + encodeURIComponent(content) + "&game_title=" + encodeURIComponent("{{ game.title|escapejs }}"),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.ok) {
+        const opt = document.createElement("option");
+        opt.value = d.memo_id;
+        opt.dataset.content = content;
+        opt.textContent = d.title;
+        noteSelect.appendChild(opt);
+        noteSelect.value = String(d.memo_id);
+        selectedMemoId = String(d.memo_id);
+        noteSaveBtn.disabled = false;
+        showNoteMsg("새 메모가 저장됐어요!", true);
+      } else { showNoteMsg("저장 실패", false); }
+    });
+  });
 
   /* ── Escape ── */
   document.addEventListener("keydown", function (e) {
@@ -720,6 +920,18 @@ document.addEventListener("DOMContentLoaded", function () {
   /* ── 입력창 ── */
   const input = document.getElementById("messageInput");
   const form  = document.getElementById("gameForm");
+
+  /* ── 첫 진입 툴팁 ── */
+  const tooltip = document.getElementById("inputTooltip");
+  if (tooltip) {
+    const hideTooltip = function() {
+      tooltip.classList.add("fade-out");
+      setTimeout(function() { tooltip.classList.add("hidden"); }, 300);
+    };
+    const timer = setTimeout(hideTooltip, 3000);
+    input.addEventListener("focus", function() { clearTimeout(timer); hideTooltip(); }, { once: true });
+    input.addEventListener("click", function() { clearTimeout(timer); hideTooltip(); }, { once: true });
+  }
 
   function autoResize() { input.style.height = "auto"; input.style.height = input.scrollHeight + "px"; }
   input.addEventListener("input", autoResize);
@@ -764,6 +976,32 @@ document.addEventListener("DOMContentLoaded", function () {
     btn.addEventListener("click", function () {
       input.value = btn.dataset.text;
       input.focus(); autoResize(); closeSugg();
+    });
+  });
+
+  /* ── 페르소나 선택 ── */
+  const setPersonaUrl = "{% url 'game:set_persona' game.id %}";
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  const navProfile = document.querySelector('.nav-profile');
+
+  document.querySelectorAll('.js-set-persona').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const id = this.dataset.id;
+      const name = this.dataset.name;
+      fetch(setPersonaUrl, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'persona_id=' + id,
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ok) {
+          document.querySelectorAll('.js-set-persona').forEach(function(b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          navProfile.textContent = name;
+        }
+      });
     });
   });
 

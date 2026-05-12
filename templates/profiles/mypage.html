@@ -106,6 +106,126 @@
   .btn-create:hover { background: rgba(74,122,255,0.25); color: #aac8ff; }
 
   .empty-msg { color: rgba(255,255,255,0.2); font-size: .9rem; padding: 32px 0; text-align: center; }
+
+  /* ── 찜 목록 카드 그리드 ── */
+  .bm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+  }
+  .bm-card {
+    cursor: pointer; border-radius: 14px; overflow: hidden;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: border-color .15s, transform .15s;
+  }
+  .bm-card:hover { border-color: rgba(74,122,255,0.4); transform: translateY(-2px); }
+  .bm-thumb {
+    position: relative; padding-bottom: 150%;
+    background: rgba(255,255,255,0.04);
+  }
+  .bm-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bm-fallback {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  }
+  .bm-fallback[data-tag="무협"]       { background:linear-gradient(135deg,#1e0606,#4a1010); color:#ff9090; }
+  .bm-fallback[data-tag="SF"]         { background:linear-gradient(135deg,#060a1e,#10184a); color:#8090ff; }
+  .bm-fallback[data-tag="로맨스"]     { background:linear-gradient(135deg,#1e0614,#4a1038); color:#ff80b8; }
+  .bm-fallback[data-tag="판타지"]     { background:linear-gradient(135deg,#100630,#22106a); color:#c090ff; }
+  .bm-fallback[data-tag="아포칼립스"] { background:linear-gradient(135deg,#120e04,#2e2008); color:#e0b060; }
+  .bm-fallback[data-tag="현대"]       { background:linear-gradient(135deg,#060e08,#0e2014); color:#80c090; }
+  .bm-card-info { padding: 10px 12px 12px; }
+  .bm-card-tag  { font-size: .72rem; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+  .bm-card-title { font-weight: 700; font-size: .85rem; color: #d0dcff;
+                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── 찜 목록 모달 ── */
+  .bm-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.68); backdrop-filter: blur(5px);
+    z-index: 500; align-items: center; justify-content: center;
+  }
+  .bm-overlay.show { display: flex; }
+  .bm-modal {
+    background: rgba(14,18,28,.98);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 22px;
+    box-shadow: 0 28px 72px rgba(0,0,0,.65);
+    width: min(520px, 92vw); max-height: 90vh;
+    overflow-y: auto; position: relative;
+  }
+  .bm-modal-inner { display: flex; min-height: 240px; }
+  .bm-modal-thumb {
+    width: 155px; flex-shrink: 0;
+    border-radius: 22px 0 0 22px; overflow: hidden;
+    position: relative; background: rgba(255,255,255,0.04);
+  }
+  .bm-modal-fallback {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: .08em;
+  }
+  .bm-modal-fallback[data-tag="무협"]       { background:linear-gradient(135deg,#1e0606,#4a1010); color:#ff9090; }
+  .bm-modal-fallback[data-tag="SF"]         { background:linear-gradient(135deg,#060a1e,#10184a); color:#8090ff; }
+  .bm-modal-fallback[data-tag="로맨스"]     { background:linear-gradient(135deg,#1e0614,#4a1038); color:#ff80b8; }
+  .bm-modal-fallback[data-tag="판타지"]     { background:linear-gradient(135deg,#100630,#22106a); color:#c090ff; }
+  .bm-modal-fallback[data-tag="아포칼립스"] { background:linear-gradient(135deg,#120e04,#2e2008); color:#e0b060; }
+  .bm-modal-fallback[data-tag="현대"]       { background:linear-gradient(135deg,#060e08,#0e2014); color:#80c090; }
+  .bm-modal-fallback .fb-icon { font-size: 2rem; opacity: .5; }
+  .bm-modal-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bm-modal-info {
+    flex: 1; min-width: 0; padding: 26px 22px 22px;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .bm-modal-tag {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.18);
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    color: rgba(255,255,255,.7); width: fit-content;
+  }
+  .bm-modal-title { font-size: 1.25rem; font-weight: 900; line-height: 1.2; color: #e8f0ff; }
+  .bm-modal-title a { color: inherit; text-decoration: none; transition: opacity .15s; }
+  .bm-modal-title a:hover { opacity: .8; text-decoration: underline; }
+  .bm-modal-desc { font-size: .87rem; color: rgba(255,255,255,.6); line-height: 1.65; }
+  .bm-modal-divider { height: 1px; background: rgba(255,255,255,.08); }
+  .bm-modal-lore-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.3); text-transform: uppercase; }
+  .bm-modal-lore { font-size: .83rem; color: rgba(255,255,255,.5); line-height: 1.6; }
+  .bm-modal-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 4px; }
+  .bm-btn-detail {
+    flex: 1; padding: 10px; border-radius: 11px;
+    border: 1px solid rgba(255,255,255,.18); background: transparent;
+    color: rgba(255,255,255,.75); font-size: .85rem; font-weight: 700;
+    text-align: center; text-decoration: none; cursor: pointer;
+    transition: background .12s;
+  }
+  .bm-btn-detail:hover { background: rgba(255,255,255,.07); color: #fff; }
+  .bm-btn-play {
+    flex: 1.5; padding: 10px; border-radius: 11px;
+    border: none; background: #fff; color: #000;
+    font-size: .88rem; font-weight: 800; text-align: center;
+    text-decoration: none; cursor: pointer; display: block;
+    transition: background .12s;
+  }
+  .bm-btn-play:hover { background: #e8e8e8; color: #000; }
+  .bm-modal-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 30px; height: 30px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.7); font-size: 13px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    z-index: 1; transition: background .12s;
+  }
+  .bm-modal-close:hover { background: rgba(255,255,255,.14); }
+  .bm-unbookmark {
+    background: none; border: none; cursor: pointer; padding: 0;
+    font-size: .75rem; color: rgba(239,68,68,.55);
+    transition: color .12s; text-align: left;
+  }
+  .bm-unbookmark:hover { color: #f87171; }
 </style>
 
 <div class="mp-wrap">
@@ -113,9 +233,11 @@
 
   <!-- 탭 -->
   <nav class="mp-tabs">
-    <a href="?tab=info"    class="mp-tab {% if tab == 'info' %}active{% endif %}">내 정보</a>
-    <a href="?tab=memo"    class="mp-tab {% if tab == 'memo' %}active{% endif %}">유저메모</a>
-    <a href="?tab=persona" class="mp-tab {% if tab == 'persona' %}active{% endif %}">페르소나</a>
+    <a href="?tab=info"     class="mp-tab {% if tab == 'info' %}active{% endif %}">내 정보</a>
+    <a href="?tab=memo"     class="mp-tab {% if tab == 'memo' %}active{% endif %}">유저메모</a>
+    <a href="?tab=persona"  class="mp-tab {% if tab == 'persona' %}active{% endif %}">페르소나</a>
+    <a href="?tab=bookmark" class="mp-tab {% if tab == 'bookmark' %}active{% endif %}">찜 목록</a>
+    <a href="?tab=recent"   class="mp-tab {% if tab == 'recent' %}active{% endif %}">최근 플레이</a>
   </nav>
 
   <!-- ── 내 정보 ── -->
@@ -215,6 +337,7 @@
     <div class="info-row"><span class="info-label">이메일</span><span class="info-val">{{ request.user.email|default:"—" }}</span></div>
     <div class="info-row"><span class="info-label">유저메모</span><span class="info-val">{{ memos.count }}개</span></div>
     <div class="info-row"><span class="info-label">페르소나</span><span class="info-val">{{ personas.count }}개</span></div>
+    <div class="info-row"><span class="info-label">찜한 게임</span><span class="info-val">{{ bookmarks.count }}개</span></div>
   </div>
 
   <!-- ── 유저메모 ── -->
@@ -270,7 +393,178 @@
     {% endif %}
     <a href="{% url 'profiles:persona_create' %}" class="btn-create">+ 페르소나 만들기</a>
   </div>
+
+  <!-- ── 찜 목록 ── -->
+  {% elif tab == 'bookmark' %}
+  <div>
+    <div style="font-size:1rem; font-weight:800; margin-bottom:20px; color:#c8d6ff;">찜한 게임</div>
+    {% if bookmarks %}
+    <div class="bm-grid">
+      {% for bm in bookmarks %}
+      <div class="bm-card" role="button" tabindex="0"
+           data-game-id="{{ bm.game.id }}"
+           data-game-title="{{ bm.game.title|escapejs }}"
+           data-game-desc="{{ bm.game.description|escapejs }}"
+           data-game-tag="{{ bm.game.genre }}"
+           data-game-thumb="{{ bm.game.thumb_url }}"
+           data-game-lore="{{ bm.game.world_setting|escapejs }}"
+           data-play-url="{% url 'game:view' bm.game.id %}"
+           data-played="{% if bm.game.id in played_game_ids %}1{% else %}0{% endif %}">
+        <div class="bm-thumb">
+          <div class="bm-fallback" data-tag="{{ bm.game.genre }}">
+            <span style="font-size:1.4rem;opacity:.5;">◈</span>
+            <span>#{{ bm.game.genre }}</span>
+          </div>
+          {% if bm.game.thumb_url %}
+          <img src="{{ bm.game.thumb_url }}" alt="{{ bm.game.title }}" onerror="this.style.display='none'">
+          {% endif %}
+        </div>
+        <div class="bm-card-info">
+          <div class="bm-card-tag">#{{ bm.game.genre }}</div>
+          <div class="bm-card-title">{{ bm.game.title }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-msg">아직 찜한 게임이 없어요.</div>
+    {% endif %}
+  </div>
+  <!-- ── 최근 플레이 ── -->
+  {% elif tab == 'recent' %}
+  <div>
+    <div style="font-size:1rem; font-weight:800; margin-bottom:20px; color:#c8d6ff;">최근 플레이</div>
+    {% if recent_sessions %}
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      {% for s in recent_sessions %}
+      <a href="{% url 'game:view' s.game.id %}" style="text-decoration:none; color:inherit;">
+        <div style="display:flex; align-items:center; gap:14px;
+                    background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+                    border-radius:12px; padding:14px 16px; cursor:pointer;
+                    transition:border-color .14s, background .14s;"
+             onmouseover="this.style.borderColor='rgba(74,122,255,0.35)'; this.style.background='rgba(74,122,255,0.05)';"
+             onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'; this.style.background='rgba(255,255,255,0.03)';">
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; font-size:.92rem; color:#d0dcff;
+                        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;">
+              {{ s.game.title }}
+            </div>
+            <div style="font-size:.76rem; color:rgba(255,255,255,0.35);">
+              {{ s.updated_at|date:"m.d" }} · T-{{ s.turn }}
+            </div>
+          </div>
+          <div style="flex-shrink:0; font-size:.8rem; color:rgba(74,122,255,0.7); font-weight:700;">
+            이어하기 →
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-msg">아직 플레이한 게임이 없어요.</div>
+    {% endif %}
+  </div>
   {% endif %}
 
 </div>
+
+{% if tab == 'bookmark' %}
+<!-- 찜 목록 모달 -->
+<div class="bm-overlay" id="bmOverlay">
+  <div class="bm-modal" id="bmModal">
+    <button class="bm-modal-close" id="bmClose">✕</button>
+    <div class="bm-modal-inner">
+      <div class="bm-modal-thumb" id="bmThumb">
+        <div class="bm-modal-fallback" id="bmFallback" data-tag="">
+          <span class="fb-icon">◈</span>
+          <span id="bmFallbackTag"></span>
+        </div>
+        <img id="bmImg" src="" alt="" onerror="this.style.display='none'" style="display:none;">
+      </div>
+      <div class="bm-modal-info">
+        <span class="bm-modal-tag" id="bmTag"></span>
+        <div class="bm-modal-title"><a id="bmTitleLink" href="#">—</a></div>
+        <div class="bm-modal-desc" id="bmDesc"></div>
+        <div class="bm-modal-divider"></div>
+        <div class="bm-modal-lore-label">세계관</div>
+        <div class="bm-modal-lore" id="bmLore"></div>
+        <div class="bm-modal-actions">
+          <a class="bm-btn-detail" id="bmBtnDetail" href="#">상세보기</a>
+          <a class="bm-btn-play"   id="bmBtnPlay"   href="#">플레이</a>
+        </div>
+        <form id="bmUnbookmarkForm" method="post" style="margin-top:10px;">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'profiles:mypage' %}?tab=bookmark">
+          <button type="submit" class="bm-unbookmark">♥ 찜 취소</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const overlay = document.getElementById("bmOverlay");
+  if (!overlay) return;
+
+  let currentGameId = "";
+
+  function openModal(card) {
+    const tag    = card.dataset.gameTag;
+    const played = card.dataset.played === "1";
+    currentGameId = card.dataset.gameId;
+
+    const detailUrl = "/game/" + currentGameId + "/detail/";
+    const playUrl   = card.dataset.playUrl;
+
+    // 썸네일
+    const img = document.getElementById("bmImg");
+    const thumb = card.dataset.gameThumb;
+    if (thumb) { img.src = thumb; img.style.display = ""; }
+    else        { img.style.display = "none"; }
+
+    // 폴백
+    const fallback = document.getElementById("bmFallback");
+    fallback.dataset.tag = tag;
+    document.getElementById("bmFallbackTag").textContent = "#" + tag;
+
+    // 텍스트
+    document.getElementById("bmTag").textContent       = "#" + tag;
+    const link = document.getElementById("bmTitleLink");
+    link.textContent = card.dataset.gameTitle;
+    link.href        = detailUrl;
+    document.getElementById("bmDesc").textContent      = card.dataset.gameDesc;
+    document.getElementById("bmLore").textContent      = card.dataset.gameLore;
+
+    // 버튼
+    document.getElementById("bmBtnDetail").href = detailUrl;
+    const playBtn = document.getElementById("bmBtnPlay");
+    playBtn.href        = playUrl;
+    playBtn.textContent = played ? "이어하기" : "플레이";
+
+    // 찜 취소 폼
+    document.getElementById("bmUnbookmarkForm").action =
+      "/game/" + currentGameId + "/bookmark/";
+
+    overlay.classList.add("show");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeModal() {
+    overlay.classList.remove("show");
+    document.body.style.overflow = "";
+  }
+
+  document.querySelectorAll(".bm-card").forEach(function(card) {
+    card.addEventListener("click", function() { openModal(card); });
+    card.addEventListener("keydown", function(e) { if (e.key === "Enter") openModal(card); });
+  });
+
+  document.getElementById("bmClose").addEventListener("click", closeModal);
+  overlay.addEventListener("click", function(e) { if (e.target === overlay) closeModal(); });
+  document.addEventListener("keydown", function(e) { if (e.key === "Escape") closeModal(); });
+})();
+</script>
+{% endif %}
+
 {% endblock %}

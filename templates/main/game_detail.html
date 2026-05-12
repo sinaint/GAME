@@ -69,8 +69,10 @@
     margin-bottom: 24px;
   }
   .dh-stats span { display: flex; align-items: center; gap: 4px; }
+  .btn-row { display: flex; gap: 10px; }
   .btn-play-lg {
-    display: block; width: 100%;
+    flex: 1;
+    display: block;
     padding: 14px;
     border-radius: 14px;
     border: none;
@@ -81,6 +83,19 @@
     transition: background .12s;
   }
   .btn-play-lg:hover { background: #e8e8e8; color: #000; }
+  .btn-bookmark {
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+    padding: 14px 20px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: transparent; color: rgba(255,255,255,0.7);
+    font-size: .95rem; font-weight: 700;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, color .12s;
+  }
+  .btn-bookmark:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: #f87171; }
+  .btn-bookmark.bookmarked { color: #f87171; border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.08); }
 
   /* ── 섹션 공통 ── */
   .detail-section { margin-top: 48px; }
@@ -220,15 +235,24 @@
 
       <div class="dh-stats">
         <span>▶ {{ game.play_count }} 플레이</span>
-        <span>♡ {{ game.like_count }} 좋아요</span>
         <span>✎ {{ comment_count }} 댓글</span>
       </div>
 
-      {% if user.is_authenticated %}
-        <button class="btn-play-lg" onclick="openPersonaModal()">플레이</button>
-      {% else %}
-        <a href="{% url 'login' %}?next={{ request.path }}" class="btn-play-lg">로그인 후 플레이</a>
-      {% endif %}
+      <div class="btn-row">
+        {% if user.is_authenticated %}
+          <button class="btn-play-lg" onclick="openPersonaModal()">플레이</button>
+          <form method="post" action="{% url 'main:toggle_bookmark' game.id %}" style="margin:0;">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn-bookmark{% if is_bookmarked %} bookmarked{% endif %}">
+              {% if is_bookmarked %}♥{% else %}♡{% endif %} 찜하기
+            </button>
+          </form>
+        {% else %}
+          <a href="{% url 'login' %}?next={{ request.path }}" class="btn-play-lg">로그인 후 플레이</a>
+          <div class="btn-bookmark" style="cursor:default;">♡ 찜하기</div>
+        {% endif %}
+      </div>
     </div>
   </div>
 

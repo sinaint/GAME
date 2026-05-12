@@ -5,7 +5,7 @@
 <style>
   .form-wrap { max-width: 640px; margin: 0 auto; padding: 40px 24px 80px; }
   .form-title { font-size: 1.2rem; font-weight: 900; color: #c8d6ff; margin-bottom: 32px; }
-  .form-label { display: block; font-size: .78rem; color: rgba(255,255,255,0.4); letter-spacing:.05em; margin-bottom: 8px; }
+  .form-label { display: block; font-size: .78rem; color: rgba(255,255,255,0.85); letter-spacing:.05em; margin-bottom: 8px; font-weight: 700; }
   .form-label span { color: #f87171; margin-left: 2px; }
   .form-input, .form-textarea {
     width: 100%; background: rgba(255,255,255,0.04);
@@ -17,7 +17,7 @@
   }
   .form-input:focus, .form-textarea:focus { border-color: #4a7aff; }
   .form-textarea { resize: vertical; line-height: 1.65; }
-  .form-hint { font-size: .75rem; color: rgba(255,255,255,0.25); margin-top: 6px; }
+  .form-hint { font-size: .75rem; color: rgba(255,255,255,0.55); margin-top: 6px; }
   .form-group { margin-bottom: 22px; }
   .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 32px; }
   .btn-cancel {
@@ -57,10 +57,10 @@
     </div>
     <div class="form-group">
       <label class="form-label">메모 내용</label>
-      <div style="font-size:.75rem; color:rgba(255,255,255,0.2); margin-bottom:8px;">스킬·무공·특수 능력 등 AI가 게임 중 참고할 정보를 자유롭게 정리하세요.</div>
+      <div style="font-size:.75rem; color:rgba(255,255,255,0.55); margin-bottom:8px;">스킬·무공·특수 능력 등 AI가 게임 중 참고할 정보를 자유롭게 정리하세요.</div>
       <textarea name="content" class="form-textarea" rows="12" maxlength="2000"
                 placeholder="게임 내에서 AI가 참고할 스킬, 무공, 능력 등을 정리하세요.&#10;&#10;예) 검술&#10;1식 천뢰참 — 하늘에서 번개를 내리찍듯 위에서 아래로 내려치는 강력한 일격. 위력은 높지만 빈틈이 크다.&#10;2식 잔영류 — 잔상을 남기며 빠르게 이동해 적의 측면을 노리는 기술. 속도가 핵심.&#10;3식 멸혼도 — 기를 검날에 집중시켜 한 점에 폭발시키는 최강의 일격. 체력 소모가 심하다.">{{ obj.content|default:'' }}</textarea>
-      <div class="form-hint" id="content-hint">0 / 2000자</div>
+      <div style="text-align:right; font-size:.72rem; color:rgba(255,255,255,0.55); margin-top:4px;" id="content-hint">0 / 2000자</div>
     </div>
     <div class="form-actions">
       <a href="{% url 'profiles:mypage' %}?tab=memo" class="btn-cancel">취소</a>

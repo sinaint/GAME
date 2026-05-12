@@ -3,11 +3,13 @@ import logging
 import os
 
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from groq import Groq
 from gamebuilder.models import Game
-from profiles.models import UserPersona
+from django.utils import timezone
+from profiles.models import UserMemo, UserPersona
 from .models import GameSession, GameEvent
 
 logger = logging.getLogger(__name__)
@@ -180,6 +182,8 @@ def game_view(request, game_id):
     events = session.events.order_by("created_at")
     latest_sugg_ev = session.events.filter(kind="SUGGESTIONS").order_by("-created_at").first()
     latest_suggestions = (latest_sugg_ev.payload_json or {}).get("items", []) if latest_sugg_ev else []
+    personas = UserPersona.objects.filter(user=request.user)
+    memos = UserMemo.objects.filter(user=request.user)
 
     return render(request, "game/game.html", {
         "game": game,
@@ -187,7 +191,63 @@ def game_view(request, game_id):
         "events": events,
         "game_title": game.title,
         "latest_suggestions": latest_suggestions,
+        "personas": personas,
+        "memos": memos,
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def memo_save(request):
+    content = request.POST.get("content", "")
+    memo_id = request.POST.get("memo_id", "").strip()
+    if memo_id:
+        try:
+            memo = UserMemo.objects.get(pk=int(memo_id), user=request.user)
+            memo.content = content
+            memo.save(update_fields=["content", "updated_at"])
+            return JsonResponse({"ok": True, "memo_id": memo.pk, "title": memo.title})
+        except (UserMemo.DoesNotExist, ValueError):
+            return JsonResponse({"ok": False}, status=400)
+    else:
+        game_title = request.POST.get("game_title", "").strip()
+        now = timezone.now()
+        base = f"{game_title} 노트" if game_title else f"노트 {now.strftime('%m/%d %H:%M')}"
+        title, n = base, 1
+        while UserMemo.objects.filter(user=request.user, title=title).exists():
+            title = f"{base} ({n})"
+            n += 1
+        memo = UserMemo.objects.create(user=request.user, title=title, content=content)
+        return JsonResponse({"ok": True, "memo_id": memo.pk, "title": memo.title})
+
+
+@login_required
+@require_http_methods(["POST"])
+def game_set_persona(request, game_id):
+    game = get_object_or_404(Game, pk=game_id, is_published=True)
+    session = get_object_or_404(GameSession, user=request.user, game=game)
+    persona_id = request.POST.get("persona_id", "").strip()
+    if persona_id:
+        try:
+            persona = UserPersona.objects.get(pk=int(persona_id), user=request.user)
+            session.persona = persona
+        except (UserPersona.DoesNotExist, ValueError):
+            return JsonResponse({"ok": False}, status=400)
+    else:
+        session.persona = None
+    session.save(update_fields=["persona"])
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@require_http_methods(["POST"])
+def game_restart(request, game_id):
+    game = get_object_or_404(Game, pk=game_id, is_published=True)
+    session = GameSession.objects.filter(user=request.user, game=game).first()
+    if session:
+        session.events.all().delete()
+        session.delete()
+    return redirect("game:view", game_id=game_id)
 
 
 @login_required

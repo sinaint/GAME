@@ -18,13 +18,16 @@
     </div>
   </div>
   <div style="display:flex; align-items:center; gap:10px;">
-    <input id="searchInput" placeholder="제목 또는 장르 검색"
-           style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
-                  border-radius:10px; padding:8px 14px; color:#fff; font-size:.85rem;
-                  outline:none; min-width:260px;"
-           autocomplete="off"
-           onfocus="this.style.borderColor='rgba(255,255,255,0.28)'"
-           onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+    <form method="get" action="/" style="margin:0; display:flex; align-items:center;">
+      {% if genre %}<input type="hidden" name="genre" value="{{ genre }}">{% endif %}
+      <input name="q" value="{{ q }}" placeholder="제목 검색"
+             style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+                    border-radius:10px; padding:8px 14px; color:#fff; font-size:.85rem;
+                    outline:none; min-width:260px;"
+             autocomplete="off"
+             onfocus="this.style.borderColor='rgba(255,255,255,0.28)'"
+             onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+    </form>
     <div style="position:relative;">
       {% if user.is_authenticated %}
         <button id="userBtn" style="display:inline-flex; align-items:center; gap:7px; padding:6px 14px 6px 8px;
@@ -76,8 +79,8 @@
   /* 카드 */
   .game-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); transition:transform .14s, border-color .14s; }
   .game-card:hover { transform:translateY(-3px); border-color:rgba(255,255,255,0.20); }
-  .thumb-box { aspect-ratio:2/3; position:relative; overflow:hidden; border-radius:inherit; }
-  .thumb-box img { position:relative; z-index:1; width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb-box { position:relative; overflow:hidden; border-radius:inherit; width:100%; padding-bottom:150%; }
+  .thumb-box img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; z-index:1; }
   .thumb-fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; font-size:11px; letter-spacing:.1em; font-weight:600; text-transform:uppercase; color:rgba(255,255,255,0.35); }
   .thumb-fallback .fb-icon { font-size:1.6rem; opacity:.5; }
   .thumb-box[data-tag="무협"]      .thumb-fallback { background:linear-gradient(135deg,#1e0606,#4a1010); color:#ff9090; }
@@ -111,6 +114,8 @@
   .gm-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
   .gm-tag-chip { display:inline-block; padding:3px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.18); font-size:11px; font-weight:700; letter-spacing:.08em; color:rgba(255,255,255,.7); width:fit-content; }
   .gm-title { font-size:1.4rem; font-weight:900; line-height:1.2; }
+  .gm-title a { color:inherit; text-decoration:none; cursor:pointer; transition:color .15s, opacity .15s; }
+  .gm-title a:hover { color:#fff; opacity:.85; text-decoration:underline; }
   .gm-desc { font-size:.9rem; opacity:.7; line-height:1.6; }
   .gm-divider { height:1px; background:rgba(255,255,255,.08); }
   .gm-lore-label { font-size:11px; font-weight:700; letter-spacing:.1em; opacity:.45; text-transform:uppercase; }
@@ -145,7 +150,7 @@
   .home-main { flex:1; overflow-y:auto; padding:24px 32px; }
   .home-main::-webkit-scrollbar { width:4px; }
   .home-main::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:4px; }
-  #no-results { display:none; color:rgba(255,255,255,.3); font-size:.88rem; padding:32px 0; text-align:center; grid-column:1/-1; }
+
 </style>
 
 <!-- 바디 레이아웃 -->
@@ -183,71 +188,75 @@
   <div class="home-main">
 
     <!-- 장르 칩 -->
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;" id="chip-bar">
-      <span class="px-3 py-1 rounded-pill chip active" data-filter="all">추천</span>
-      <span class="px-3 py-1 rounded-pill chip" data-filter="무협">무협</span>
-      <span class="px-3 py-1 rounded-pill chip" data-filter="로맨스">로맨스</span>
-      <span class="px-3 py-1 rounded-pill chip" data-filter="SF">SF</span>
-      <span class="px-3 py-1 rounded-pill chip" data-filter="판타지">판타지</span>
-      <span class="px-3 py-1 rounded-pill chip" data-filter="아포칼립스">아포칼립스</span>
-      <span class="px-3 py-1 rounded-pill chip" data-filter="현대">현대</span>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+      <a href="/?{% if q %}q={{ q }}{% endif %}"
+         class="px-3 py-1 rounded-pill chip {% if not genre %}active{% endif %}"
+         style="text-decoration:none;">전체</a>
+      {% for g in genres %}
+      <a href="/?genre={{ g }}{% if q %}&q={{ q }}{% endif %}"
+         class="px-3 py-1 rounded-pill chip {% if genre == g %}active{% endif %}"
+         style="text-decoration:none;">{{ g }}</a>
+      {% endfor %}
     </div>
 
     <div style="font-weight:800; font-size:1.2rem; margin-bottom:16px;">게임 모아보기</div>
 
-    <div id="game-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:12px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:12px;">
       {% for g in games %}
-      <div data-tag="{{ g.genre }}" data-title="{{ g.title }}">
-        <div class="p-2 rounded-4 game-card" role="button" tabindex="0" style="cursor:pointer;"
-             data-game-id="{{ g.id }}"
-             data-game-title="{{ g.title }}"
-             data-game-desc="{{ g.description }}"
-             data-game-tag="{{ g.genre }}"
-             data-game-thumb="{{ g.thumb_url }}"
-             data-game-lore="{{ g.world_setting }}"
-             data-play-url="{% url 'game:view' g.id %}">
-          <div class="rounded-4 thumb-box" data-tag="{{ g.genre }}">
-            <div class="thumb-fallback">
-              <span class="fb-icon">◈</span>
-              <span>#{{ g.genre }}</span>
-            </div>
-            {% if g.thumb_url %}<img src="{{ g.thumb_url }}" alt="{{ g.title }}" onerror="this.style.display='none'">{% endif %}
+      <div class="p-2 rounded-4 game-card" role="button" tabindex="0" style="cursor:pointer;"
+           data-game-id="{{ g.id }}"
+           data-game-title="{{ g.title }}"
+           data-game-desc="{{ g.description }}"
+           data-game-tag="{{ g.genre }}"
+           data-game-thumb="{{ g.thumb_url }}"
+           data-game-lore="{{ g.world_setting }}"
+           data-play-url="{% url 'game:view' g.id %}"
+           data-played="{% if g.id in played_game_ids %}1{% else %}0{% endif %}"
+           data-bookmarked="{% if g.id in bookmark_game_ids %}1{% else %}0{% endif %}">
+        <div class="rounded-4 thumb-box" data-tag="{{ g.genre }}">
+          <div class="thumb-fallback">
+            <span class="fb-icon">◈</span>
+            <span>#{{ g.genre }}</span>
           </div>
-          <div style="margin-top:8px; font-weight:800; font-size:.88rem; line-height:1.3;">{{ g.title }}</div>
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:5px;">
-            <span style="opacity:.45; font-size:11px; letter-spacing:.05em;">#{{ g.genre }}</span>
-            <span style="display:inline-flex; align-items:center; gap:3px; opacity:.6; font-size:11px;">
-              {{ g.created_by.user_settings.nickname|default:g.created_by.username }}
-              <svg width="13" height="13" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 3px rgba(120,100,255,0.8)); flex-shrink:0;">
-                <defs>
-                  <radialGradient id="gc2" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stop-color="#ffffff"/>
-                    <stop offset="30%" stop-color="#a0c4ff" stop-opacity="0.9"/>
-                    <stop offset="100%" stop-color="#5b3ff8" stop-opacity="0"/>
-                  </radialGradient>
-                  <radialGradient id="bg2" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stop-color="#1a1060"/>
-                    <stop offset="100%" stop-color="#0a0620"/>
-                  </radialGradient>
-                  <linearGradient id="hs2" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#60aaff"/>
-                    <stop offset="100%" stop-color="#7b3fff"/>
-                  </linearGradient>
-                </defs>
-                <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="url(#bg2)" stroke="url(#hs2)" stroke-width="2"/>
-                <polygon points="50,14 82,32 82,68 50,86 18,68 18,32" fill="none" stroke="#4a6fff" stroke-width="1" opacity="0.6"/>
-                <polygon points="50,18 78,65 22,65" fill="none" stroke="#6a8fff" stroke-width="1.2" opacity="0.7"/>
-                <polygon points="50,82 22,35 78,35" fill="none" stroke="#9a6fff" stroke-width="1.2" opacity="0.7"/>
-                <circle cx="50" cy="50" r="18" fill="none" stroke="#5555cc" stroke-width="0.8" opacity="0.5"/>
-                <circle cx="50" cy="50" r="8" fill="url(#gc2)"/>
-                <circle cx="50" cy="50" r="3" fill="#ffffff" opacity="0.95"/>
-              </svg>
-            </span>
-          </div>
+          {% if g.thumb_url %}<img src="{{ g.thumb_url }}" alt="{{ g.title }}" onerror="this.style.display='none'">{% endif %}
+        </div>
+        <div style="margin-top:8px; font-weight:800; font-size:.88rem; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ g.title }}</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:5px;">
+          <span style="opacity:.45; font-size:11px; letter-spacing:.05em;">#{{ g.genre }}</span>
+          <span style="display:inline-flex; align-items:center; gap:3px; opacity:.6; font-size:11px;">
+            {{ g.created_by.user_settings.nickname|default:g.created_by.username }}
+            <svg width="13" height="13" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 3px rgba(120,100,255,0.8)); flex-shrink:0;">
+              <defs>
+                <radialGradient id="gc-{{ g.id }}" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="30%" stop-color="#a0c4ff" stop-opacity="0.9"/>
+                  <stop offset="100%" stop-color="#5b3ff8" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="bg-{{ g.id }}" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#1a1060"/>
+                  <stop offset="100%" stop-color="#0a0620"/>
+                </radialGradient>
+                <linearGradient id="hs-{{ g.id }}" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#60aaff"/>
+                  <stop offset="100%" stop-color="#7b3fff"/>
+                </linearGradient>
+              </defs>
+              <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="url(#bg-{{ g.id }})" stroke="url(#hs-{{ g.id }})" stroke-width="2"/>
+              <polygon points="50,14 82,32 82,68 50,86 18,68 18,32" fill="none" stroke="#4a6fff" stroke-width="1" opacity="0.6"/>
+              <polygon points="50,18 78,65 22,65" fill="none" stroke="#6a8fff" stroke-width="1.2" opacity="0.7"/>
+              <polygon points="50,82 22,35 78,35" fill="none" stroke="#9a6fff" stroke-width="1.2" opacity="0.7"/>
+              <circle cx="50" cy="50" r="18" fill="none" stroke="#5555cc" stroke-width="0.8" opacity="0.5"/>
+              <circle cx="50" cy="50" r="8" fill="url(#gc-{{ g.id }})"/>
+              <circle cx="50" cy="50" r="3" fill="#ffffff" opacity="0.95"/>
+            </svg>
+          </span>
         </div>
       </div>
+      {% empty %}
+      <div style="grid-column:1/-1; color:rgba(255,255,255,0.3); font-size:.88rem; padding:32px 0; text-align:center;">
+        검색 결과가 없습니다.
+      </div>
       {% endfor %}
-      <div id="no-results">검색 결과가 없습니다.</div>
     </div>
 
   </div>
@@ -269,16 +278,31 @@
       </div>
       <div class="gm-info">
         <span class="gm-tag-chip" id="gmTag"></span>
-        <div class="gm-title" id="gmTitle"></div>
+        <div class="gm-title" id="gmTitle"><a id="gmTitleLink" href="#"></a></div>
         <div class="gm-desc" id="gmDesc"></div>
         <div class="gm-divider"></div>
         <div class="gm-lore-label">세계관</div>
         <div class="gm-lore" id="gmLore"></div>
         <div class="gm-actions">
-          <a class="gm-btn-detail" id="gmBtnDetail" href="#">상세보기</a>
           {% if user.is_authenticated %}
-            <button class="gm-btn-play" id="gmBtnPlay" onclick="showPersonaStep()">플레이</button>
+            <!-- 미플레이: 상세보기 + 플레이 -->
+            <div id="gm-acts-new" style="display:flex; gap:10px; flex:1;">
+              <a class="gm-btn-detail" id="gmBtnDetail" href="#">상세보기</a>
+              <button class="gm-btn-play" onclick="showPersonaStep()">플레이</button>
+            </div>
+            <!-- 플레이 이력 있음: 이어하기 + 새로하기 -->
+            <div id="gm-acts-played" style="display:none; gap:10px; flex:1;">
+              <a class="gm-btn-play" id="gmBtnContinue" href="#">이어하기</a>
+              <button class="gm-btn-detail" id="gmBtnRestart" onclick="confirmRestart()">새로하기</button>
+            </div>
+            <!-- 찜하기 버튼 -->
+            <button id="gmBtnBookmark" onclick="submitBookmark()"
+                    style="flex-shrink:0; padding:10px 16px; border-radius:12px;
+                           border:1px solid rgba(255,255,255,.15); background:transparent;
+                           color:rgba(255,255,255,.6); font-size:.9rem; font-weight:700; cursor:pointer;
+                           transition:background .12s, border-color .12s, color .12s;">♡ 찜</button>
           {% else %}
+            <a class="gm-btn-detail" href="#">상세보기</a>
             <a class="gm-btn-play" href="{% url 'login' %}">로그인 후 플레이</a>
           {% endif %}
         </div>
@@ -349,6 +373,185 @@
   </div>
 </div>
 
+<!-- 재시작용 hidden POST form -->
+{% if user.is_authenticated %}
+<form id="restartForm" method="post" style="display:none;">
+  {% csrf_token %}
+</form>
+<form id="bookmarkForm" method="post" style="display:none;">
+  {% csrf_token %}
+</form>
+{% endif %}
+
+<!-- ── 튜토리얼 팝업 ── -->
+{% if show_tutorial %}
+<style>
+  .tut-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.78);
+    backdrop-filter: blur(6px);
+    z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tut-panel {
+    background: rgba(14,18,28,.98);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 24px;
+    box-shadow: 0 32px 80px rgba(0,0,0,.7);
+    width: min(460px, 92vw);
+    padding: 36px 32px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tut-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 32px; height: 32px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.7); font-size: 14px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .12s;
+  }
+  .tut-close:hover { background: rgba(255,255,255,.14); }
+  .tut-slide { display: none; }
+  .tut-slide.active { display: block; }
+  .tut-icon {
+    font-size: 2.6rem; margin-bottom: 18px; text-align: center;
+    filter: drop-shadow(0 0 12px rgba(100,150,255,.5));
+  }
+  .tut-title {
+    font-size: 1.25rem; font-weight: 900; text-align: center;
+    margin-bottom: 12px; color: #d0dcff;
+  }
+  .tut-body {
+    font-size: .92rem; line-height: 1.8; color: rgba(255,255,255,.65);
+    text-align: center; margin-bottom: 28px;
+  }
+  .tut-body strong { color: rgba(255,255,255,.9); }
+  .tut-dots {
+    display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;
+  }
+  .tut-dot {
+    width: 8px; height: 8px; border-radius: 999px;
+    background: rgba(255,255,255,.2);
+    transition: background .2s, width .2s;
+  }
+  .tut-dot.active { background: #4a7aff; width: 22px; }
+  .tut-nav {
+    display: flex; gap: 10px;
+  }
+  .tut-btn-prev {
+    flex: 1; padding: 12px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.15);
+    background: transparent; color: rgba(255,255,255,.6);
+    font-size: .9rem; font-weight: 700; cursor: pointer;
+    transition: background .12s;
+  }
+  .tut-btn-prev:hover { background: rgba(255,255,255,.07); }
+  .tut-btn-next {
+    flex: 2; padding: 12px; border-radius: 12px;
+    border: none; background: #4a7aff; color: #fff;
+    font-size: .92rem; font-weight: 800; cursor: pointer;
+    transition: background .12s;
+  }
+  .tut-btn-next:hover { background: #3a6aee; }
+</style>
+
+<div class="tut-overlay" id="tutOverlay">
+  <div class="tut-panel">
+    <button class="tut-close" id="tutClose">✕</button>
+
+    <!-- 슬라이드 1 -->
+    <div class="tut-slide active" id="tut-slide-0">
+      <div class="tut-icon">✦</div>
+      <div class="tut-title">NOVA에 오신 걸 환영해요!</div>
+      <div class="tut-body">
+        NOVA는 <strong>AI가 이야기를 이어가는</strong> 인터랙티브 소설 플랫폼입니다.<br>
+        당신의 선택이 이야기의 방향을 결정해요.
+      </div>
+    </div>
+
+    <!-- 슬라이드 2 -->
+    <div class="tut-slide" id="tut-slide-1">
+      <div class="tut-icon">◈</div>
+      <div class="tut-title">게임을 선택하고 플레이해보세요</div>
+      <div class="tut-body">
+        홈 화면의 <strong>게임 카드를 클릭</strong>하면 상세 정보를 볼 수 있어요.<br>
+        마음에 드는 게임의 <strong>플레이 버튼</strong>을 눌러 시작하세요.<br>
+        페르소나를 설정하면 더 몰입감 있는 경험을 즐길 수 있어요.
+      </div>
+    </div>
+
+    <!-- 슬라이드 3 -->
+    <div class="tut-slide" id="tut-slide-2">
+      <div class="tut-icon">✎</div>
+      <div class="tut-title">AI가 당신의 이야기를 이어가요</div>
+      <div class="tut-body">
+        게임 화면에서 <strong>행동(*행동*)</strong> 또는 <strong>대사("대화")</strong>를 입력하세요.<br>
+        아래 <strong>추천 선택지</strong>를 탭해도 바로 입력할 수 있어요.<br>
+        AI가 당신의 선택에 맞춰 이야기를 만들어 나갑니다.
+      </div>
+    </div>
+
+    <!-- 하단 점 + 버튼 -->
+    <div class="tut-dots">
+      <div class="tut-dot active" id="tut-dot-0"></div>
+      <div class="tut-dot" id="tut-dot-1"></div>
+      <div class="tut-dot" id="tut-dot-2"></div>
+    </div>
+    <div class="tut-nav">
+      <button class="tut-btn-prev" id="tutPrev" style="display:none;">← 이전</button>
+      <button class="tut-btn-next" id="tutNext">다음 →</button>
+    </div>
+  </div>
+</div>
+
+<form id="tutorialDoneForm" method="post" action="{% url 'main:tutorial_done' %}" style="display:none;">
+  {% csrf_token %}
+</form>
+
+<script>
+(function() {
+  const TOTAL = 3;
+  let cur = 0;
+
+  function goTo(n) {
+    document.getElementById("tut-slide-" + cur).classList.remove("active");
+    document.getElementById("tut-dot-" + cur).classList.remove("active");
+    cur = n;
+    document.getElementById("tut-slide-" + cur).classList.add("active");
+    document.getElementById("tut-dot-" + cur).classList.add("active");
+
+    const prev = document.getElementById("tutPrev");
+    const next = document.getElementById("tutNext");
+    prev.style.display = cur === 0 ? "none" : "";
+    next.textContent   = cur === TOTAL - 1 ? "시작하기" : "다음 →";
+  }
+
+  function closeTutorial() {
+    document.getElementById("tutOverlay").style.display = "none";
+    document.body.style.overflow = "";
+    document.getElementById("tutorialDoneForm").submit();
+  }
+
+  document.getElementById("tutNext").addEventListener("click", function() {
+    if (cur < TOTAL - 1) { goTo(cur + 1); }
+    else { closeTutorial(); }
+  });
+  document.getElementById("tutPrev").addEventListener("click", function() {
+    if (cur > 0) goTo(cur - 1);
+  });
+  document.getElementById("tutClose").addEventListener("click", closeTutorial);
+
+  document.getElementById("tutOverlay").addEventListener("click", function(e) {
+    if (e.target === this) closeTutorial();
+  });
+
+  document.body.style.overflow = "hidden";
+})();
+</script>
+{% endif %}
+
 <script>
 (function () {
   const gmOverlay = document.getElementById("gmOverlay");
@@ -357,21 +560,64 @@
   const stepPers  = document.getElementById("step-persona");
 
   let currentPlayUrl = "";
+  let currentGameId = "";
   let selectedPersonaId = "";
+
+  const actsNew    = document.getElementById("gm-acts-new");
+  const actsPlayed = document.getElementById("gm-acts-played");
 
   // 게임 카드 클릭
   document.querySelectorAll(".game-card[data-game-id]").forEach(card => {
     card.addEventListener("click", () => {
-      const tag = card.dataset.gameTag;
+      const tag        = card.dataset.gameTag;
+      const played     = card.dataset.played === "1";
+      const bookmarked = card.dataset.bookmarked === "1";
+      currentGameId  = card.dataset.gameId;
+      currentPlayUrl = card.dataset.playUrl;
+
       document.getElementById("gmImg").src = card.dataset.gameThumb || "";
       document.getElementById("gmFallback").dataset.tag = tag;
       document.getElementById("gmFallbackTag").textContent = "#" + tag;
       document.getElementById("gmTag").textContent = "#" + tag;
-      document.getElementById("gmTitle").textContent = card.dataset.gameTitle;
+      const titleLink = document.getElementById("gmTitleLink");
+      titleLink.textContent = card.dataset.gameTitle;
+      titleLink.href = "/game/" + currentGameId + "/detail/";
       document.getElementById("gmDesc").textContent = card.dataset.gameDesc;
       document.getElementById("gmLore").textContent = card.dataset.gameLore;
-      document.getElementById("gmBtnDetail").href = "/game/" + card.dataset.gameId + "/detail/";
-      currentPlayUrl = card.dataset.playUrl;
+
+      // 상세보기 링크 업데이트
+      const detailUrl = "/game/" + currentGameId + "/detail/";
+      const detailBtn = document.getElementById("gmBtnDetail");
+      if (detailBtn) detailBtn.href = detailUrl;
+
+      // 찜하기 버튼 상태 반영
+      const bookmarkBtn = document.getElementById("gmBtnBookmark");
+      if (bookmarkBtn) {
+        if (bookmarked) {
+          bookmarkBtn.textContent = "♥ 찜";
+          bookmarkBtn.style.color = "#f87171";
+          bookmarkBtn.style.borderColor = "rgba(239,68,68,0.5)";
+          bookmarkBtn.style.background = "rgba(239,68,68,0.08)";
+        } else {
+          bookmarkBtn.textContent = "♡ 찜";
+          bookmarkBtn.style.color = "rgba(255,255,255,.6)";
+          bookmarkBtn.style.borderColor = "rgba(255,255,255,.15)";
+          bookmarkBtn.style.background = "transparent";
+        }
+      }
+
+      // 플레이 이력에 따라 버튼 그룹 전환
+      if (actsNew && actsPlayed) {
+        if (played) {
+          actsNew.style.display    = "none";
+          actsPlayed.style.display = "flex";
+          document.getElementById("gmBtnContinue").href = currentPlayUrl;
+        } else {
+          actsNew.style.display    = "flex";
+          actsPlayed.style.display = "none";
+        }
+      }
+
       stepInfo.style.display = "";
       stepPers.style.display = "none";
       gmOverlay.classList.add("show");
@@ -414,6 +660,20 @@
     const content = id ? (el.dataset.memoContent || "") : "";
     document.getElementById("userMemoInput").value = content;
   };
+  window.confirmRestart = function() {
+    if (!confirm("정말 처음부터 시작할까요?\n지금까지의 진행 내역이 모두 삭제됩니다.")) return;
+    const form = document.getElementById("restartForm");
+    if (!form) return;
+    form.action = "/game/" + currentGameId + "/restart/";
+    form.submit();
+  };
+  window.submitBookmark = function() {
+    const form = document.getElementById("bookmarkForm");
+    if (!form) return;
+    form.action = "/game/" + currentGameId + "/bookmark/";
+    form.submit();
+  };
+
   window.startGame = function() {
     const memo = document.getElementById("userMemoInput").value.trim();
     let url = currentPlayUrl;
@@ -441,35 +701,7 @@
     if (e.key === "Escape") { closeGameModal(); if (userMenu) userMenu.style.display = "none"; }
   });
 
-  // 칩 + 검색 필터
-  const chips  = document.querySelectorAll("#chip-bar .chip[data-filter]");
-  const cards  = document.querySelectorAll("#game-grid [data-tag]");
-  const noRes  = document.getElementById("no-results");
-  const search = document.getElementById("searchInput");
-  let activeFilter = "all", searchQuery = "";
 
-  function applyFilter() {
-    const filters = activeFilter === "all" ? null : [activeFilter];
-    const q = searchQuery.trim().toLowerCase();
-    let visible = 0;
-    cards.forEach(card => {
-      const ok = (!filters || filters.includes(card.dataset.tag || "")) &&
-                 (!q || (card.dataset.title || "").toLowerCase().includes(q) || (card.dataset.tag || "").toLowerCase().includes(q));
-      card.style.display = ok ? "" : "none";
-      if (ok) visible++;
-    });
-    noRes.style.display = visible === 0 ? "block" : "none";
-  }
-
-  chips.forEach(chip => {
-    chip.addEventListener("click", () => {
-      chips.forEach(c => c.classList.remove("active"));
-      chip.classList.add("active");
-      activeFilter = chip.dataset.filter;
-      applyFilter();
-    });
-  });
-  search?.addEventListener("input", e => { searchQuery = e.target.value; applyFilter(); });
 })();
 </script>
 {% endblock %}
